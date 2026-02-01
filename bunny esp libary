@@ -24,13 +24,13 @@ espModule.Config = {
     TracerColor = Color3.new(0.403922, 0.34902, 0.701961),
     ChamsFillTransparency = 0.5,
     ChamsOutlineColor = Color3.new(1, 1, 1),
-    HealthBarLerpSpeed = 0.2,
-    HealthBarColor1 = Color3.fromRGB(0, 255, 0),
-    HealthBarColor2 = Color3.fromRGB(255, 255, 0),
-    HealthBarColor3 = Color3.fromRGB(255, 0, 0),
-    ArmorBarColor1 = Color3.fromRGB(0, 0, 255),
-    ArmorBarColor2 = Color3.fromRGB(135, 206, 235),
-    ArmorBarColor3 = Color3.fromRGB(1, 0, 0),
+    HealthBarLerpSpeed = 0.15,
+    PositionLerpSpeed = 0.3,
+    ColorLerpSpeed = 0.1,
+    HealthColorFull = Color3.fromRGB(0, 255, 0),
+    HealthColorMid = Color3.fromRGB(255, 255, 0),
+    HealthColorLow = Color3.fromRGB(255, 0, 0),
+    ArmorBarColor = Color3.fromRGB(0, 150, 255),
     RingColor = Color3.fromRGB(255, 255, 255),
     ScanSpeed = 2.5,
     ScanHeight = 3.5,
@@ -60,7 +60,6 @@ espModule.Caches = {
 
 local localPlayer = playersService.LocalPlayer
 local currentCamera = workspaceService.CurrentCamera
-local updateInterval = 30
 local heartbeatConnection = nil
 local renderConnection = nil
 local currentRotation = 0
@@ -73,15 +72,34 @@ local function safeCall(callback)
 end
 
 local function lerpNumber(a, b, t)
-    return a + (b - a) * t
+    return a + (b - a) * math.clamp(t, 0, 1)
 end
 
-local function getGradientColor(color1, color2, percentage)
-    return Color3.new(
-        lerpNumber(color1.R, color2.R, percentage),
-        lerpNumber(color1.G, color2.G, percentage),
-        lerpNumber(color1.B, color2.B, percentage)
+local function lerpVector2(a, b, t)
+    return Vector2.new(
+        lerpNumber(a.X, b.X, t),
+        lerpNumber(a.Y, b.Y, t)
     )
+end
+
+local function lerpColor3(a, b, t)
+    return Color3.new(
+        lerpNumber(a.R, b.R, t),
+        lerpNumber(a.G, b.G, t),
+        lerpNumber(a.B, b.B, t)
+    )
+end
+
+local function getHealthColor(healthPercent, config)
+    if healthPercent > 50 then
+        return config.HealthColorFull
+    elseif healthPercent > 25 then
+        local t = (healthPercent - 25) / 25
+        return lerpColor3(config.HealthColorMid, config.HealthColorFull, t)
+    else
+        local t = healthPercent / 25
+        return lerpColor3(config.HealthColorLow, config.HealthColorMid, t)
+    end
 end
 
 local function getCameraDistance(worldPosition)
@@ -137,39 +155,33 @@ function espModule:CreateBox(_)
     local boxDrawings = {
         Box = Drawing.new("Square"),
         BoxOutline = Drawing.new("Square"),
-        BoxTop = Drawing.new("Line"),
-        BoxBottom = Drawing.new("Line"),
-        BoxLeft = Drawing.new("Line"),
-        BoxRight = Drawing.new("Line"),
         Name = Drawing.new("Text"),
         Distance = Drawing.new("Text"),
-        HealthText = Instance.new("TextLabel"),
-        HealthBarBackground = Instance.new("Frame"),
-        HealthBarOutline = Instance.new("UIStroke"),
-        HealthBar = Instance.new("Frame"),
-        HealthBarGradient = Instance.new("UIGradient"),
-        ArmorText = Instance.new("TextLabel"),
-        ArmorBarBackground = Instance.new("Frame"),
-        ArmorBarOutline = Instance.new("UIStroke"),
-        ArmorBar = Instance.new("Frame"),
-        ArmorBarGradient = Instance.new("UIGradient"),
-        CurrentHealth = 100,
-        TargetHealth = 100,
-        CurrentArmor = 130,
-        TargetArmor = 130,
+        HealthText = Drawing.new("Text"),
+        HealthBarBackground = Drawing.new("Square"),
+        HealthBar = Drawing.new("Square"),
+        HealthBarOutline = Drawing.new("Square"),
+        ArmorText = Drawing.new("Text"),
+        ArmorBarBackground = Drawing.new("Square"),
+        ArmorBar = Drawing.new("Square"),
+        ArmorBarOutline = Drawing.new("Square"),
         FillFrame = Instance.new("Frame"),
         Gradient = Instance.new("UIGradient"),
-        Stroke = Instance.new("UIStroke")
+        Stroke = Instance.new("UIStroke"),
+        CurrentHealth = 100,
+        TargetHealth = 100,
+        CurrentArmor = 0,
+        TargetArmor = 0,
+        CurrentHealthColor = self.Config.HealthColorFull,
+        TargetHealthColor = self.Config.HealthColorFull,
+        CurrentPosition = Vector2.new(0, 0),
+        TargetPosition = Vector2.new(0, 0),
+        CurrentSize = Vector2.new(0, 0),
+        TargetSize = Vector2.new(0, 0),
+        Initialized = false
     }
     
-    boxDrawings.HealthText.Parent = self.EspGui
-    boxDrawings.HealthBarBackground.Parent = self.EspGui
-    boxDrawings.HealthBar.Parent = self.EspGui
-    boxDrawings.ArmorText.Parent = self.EspGui
-    boxDrawings.ArmorBarBackground.Parent = self.EspGui
-    boxDrawings.ArmorBar.Parent = self.EspGui
     boxDrawings.FillFrame.Parent = self.EspGui
-    
     boxDrawings.FillFrame.BorderSizePixel = 0
     boxDrawings.FillFrame.BackgroundTransparency = 1
     boxDrawings.FillFrame.Visible = false
@@ -189,99 +201,85 @@ function espModule:CreateBox(_)
     boxDrawings.Box.Color = self.Config.BoxColor
     boxDrawings.Box.Filled = false
     boxDrawings.Box.Visible = false
+    boxDrawings.Box.Transparency = 1
     
     boxDrawings.BoxOutline.Thickness = 3
     boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
     boxDrawings.BoxOutline.Filled = false
     boxDrawings.BoxOutline.Visible = false
-    boxDrawings.BoxOutline.Transparency = 0
+    boxDrawings.BoxOutline.Transparency = 1
     
-    boxDrawings.BoxTop.Thickness = 1
-    boxDrawings.BoxTop.Visible = false
-    boxDrawings.BoxBottom.Thickness = 1
-    boxDrawings.BoxBottom.Visible = false
-    boxDrawings.BoxLeft.Thickness = 1
-    boxDrawings.BoxLeft.Visible = false
-    boxDrawings.BoxRight.Thickness = 1
-    boxDrawings.BoxRight.Visible = false
-    
-    boxDrawings.Name.Size = 13
+    boxDrawings.Name.Size = 14
     boxDrawings.Name.Color = Color3.new(1, 1, 1)
     boxDrawings.Name.Outline = true
+    boxDrawings.Name.OutlineColor = Color3.new(0, 0, 0)
     boxDrawings.Name.Center = true
     boxDrawings.Name.Visible = false
     boxDrawings.Name.Font = 2
+    boxDrawings.Name.Transparency = 1
     
     boxDrawings.Distance.Size = 13
-    boxDrawings.Distance.Color = Color3.new(1, 1, 1)
+    boxDrawings.Distance.Color = Color3.fromRGB(200, 200, 200)
     boxDrawings.Distance.Outline = true
+    boxDrawings.Distance.OutlineColor = Color3.new(0, 0, 0)
     boxDrawings.Distance.Center = true
     boxDrawings.Distance.Visible = false
     boxDrawings.Distance.Font = 2
+    boxDrawings.Distance.Transparency = 1
     
-    boxDrawings.HealthText.BackgroundTransparency = 1
-    boxDrawings.HealthText.TextSize = 12
-    boxDrawings.HealthText.Font = Enum.Font.Code
-    boxDrawings.HealthText.TextXAlignment = Enum.TextXAlignment.Left
-    boxDrawings.HealthText.TextYAlignment = Enum.TextYAlignment.Center
+    boxDrawings.HealthText.Size = 12
+    boxDrawings.HealthText.Color = Color3.new(1, 1, 1)
+    boxDrawings.HealthText.Outline = true
+    boxDrawings.HealthText.OutlineColor = Color3.new(0, 0, 0)
+    boxDrawings.HealthText.Center = false
     boxDrawings.HealthText.Visible = false
-    boxDrawings.HealthText.TextStrokeTransparency = 0
-    boxDrawings.HealthText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    boxDrawings.HealthText.Font = 2
+    boxDrawings.HealthText.Transparency = 1
     
-    boxDrawings.ArmorText.BackgroundTransparency = 1
-    boxDrawings.ArmorText.TextSize = 12
-    boxDrawings.ArmorText.Font = Enum.Font.Code
-    boxDrawings.ArmorText.TextXAlignment = Enum.TextXAlignment.Left
-    boxDrawings.ArmorText.TextYAlignment = Enum.TextYAlignment.Center
-    boxDrawings.ArmorText.Visible = false
-    boxDrawings.ArmorText.TextStrokeTransparency = 0
-    boxDrawings.ArmorText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    
-    boxDrawings.HealthBarBackground.BackgroundColor3 = Color3.fromRGB(21, 21, 21)
-    boxDrawings.HealthBarBackground.BackgroundTransparency = 0.45
-    boxDrawings.HealthBarBackground.BorderSizePixel = 0
+    boxDrawings.HealthBarBackground.Thickness = 1
+    boxDrawings.HealthBarBackground.Color = Color3.fromRGB(30, 30, 30)
+    boxDrawings.HealthBarBackground.Filled = true
     boxDrawings.HealthBarBackground.Visible = false
+    boxDrawings.HealthBarBackground.Transparency = 0.3
     
-    boxDrawings.HealthBarOutline.Parent = boxDrawings.HealthBarBackground
-    boxDrawings.HealthBarOutline.Color = Color3.fromRGB(0, 0, 0)
-    boxDrawings.HealthBarOutline.Transparency = 0.2
     boxDrawings.HealthBarOutline.Thickness = 1
-    boxDrawings.HealthBarOutline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    boxDrawings.HealthBarOutline.Color = Color3.fromRGB(0, 0, 0)
+    boxDrawings.HealthBarOutline.Filled = false
+    boxDrawings.HealthBarOutline.Visible = false
+    boxDrawings.HealthBarOutline.Transparency = 1
     
-    boxDrawings.HealthBar.BackgroundTransparency = 0
-    boxDrawings.HealthBar.BorderSizePixel = 0
+    boxDrawings.HealthBar.Thickness = 1
+    boxDrawings.HealthBar.Color = self.Config.HealthColorFull
+    boxDrawings.HealthBar.Filled = true
     boxDrawings.HealthBar.Visible = false
+    boxDrawings.HealthBar.Transparency = 1
     
-    boxDrawings.HealthBarGradient.Parent = boxDrawings.HealthBar
-    boxDrawings.HealthBarGradient.Rotation = 90
-    boxDrawings.HealthBarGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, self.Config.HealthBarColor1),
-        ColorSequenceKeypoint.new(0.5, self.Config.HealthBarColor2),
-        ColorSequenceKeypoint.new(1, self.Config.HealthBarColor3)
-    })
+    boxDrawings.ArmorText.Size = 12
+    boxDrawings.ArmorText.Color = self.Config.ArmorBarColor
+    boxDrawings.ArmorText.Outline = true
+    boxDrawings.ArmorText.OutlineColor = Color3.new(0, 0, 0)
+    boxDrawings.ArmorText.Center = false
+    boxDrawings.ArmorText.Visible = false
+    boxDrawings.ArmorText.Font = 2
+    boxDrawings.ArmorText.Transparency = 1
     
-    boxDrawings.ArmorBarBackground.BackgroundColor3 = Color3.fromRGB(21, 21, 21)
-    boxDrawings.ArmorBarBackground.BackgroundTransparency = 0.45
-    boxDrawings.ArmorBarBackground.BorderSizePixel = 0
+    boxDrawings.ArmorBarBackground.Thickness = 1
+    boxDrawings.ArmorBarBackground.Color = Color3.fromRGB(30, 30, 30)
+    boxDrawings.ArmorBarBackground.Filled = true
     boxDrawings.ArmorBarBackground.Visible = false
+    boxDrawings.ArmorBarBackground.Transparency = 0.3
     
-    boxDrawings.ArmorBarOutline.Parent = boxDrawings.ArmorBarBackground
-    boxDrawings.ArmorBarOutline.Color = Color3.fromRGB(0, 0, 0)
-    boxDrawings.ArmorBarOutline.Transparency = 0.2
     boxDrawings.ArmorBarOutline.Thickness = 1
-    boxDrawings.ArmorBarOutline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    boxDrawings.ArmorBarOutline.Color = Color3.fromRGB(0, 0, 0)
+    boxDrawings.ArmorBarOutline.Filled = false
+    boxDrawings.ArmorBarOutline.Visible = false
+    boxDrawings.ArmorBarOutline.Transparency = 1
     
-    boxDrawings.ArmorBar.BackgroundTransparency = 0
-    boxDrawings.ArmorBar.BorderSizePixel = 0
+    boxDrawings.ArmorBar.Thickness = 1
+    boxDrawings.ArmorBar.Color = self.Config.ArmorBarColor
+    boxDrawings.ArmorBar.Filled = true
     boxDrawings.ArmorBar.Visible = false
-    
-    boxDrawings.ArmorBarGradient.Parent = boxDrawings.ArmorBar
-    boxDrawings.ArmorBarGradient.Rotation = 90
-    boxDrawings.ArmorBarGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, self.Config.ArmorBarColor1),
-        ColorSequenceKeypoint.new(0.5, self.Config.ArmorBarColor2),
-        ColorSequenceKeypoint.new(1, self.Config.ArmorBarColor3)
-    })
+    boxDrawings.ArmorBar.Transparency = 1
     
     return boxDrawings
 end
@@ -290,49 +288,69 @@ function espModule:CreateSkeleton(targetPlayer)
     local targetCharacter = targetPlayer.Character
     local isR6 = targetCharacter and targetCharacter:FindFirstChild("Torso") and not targetCharacter:FindFirstChild("UpperTorso")
     
-    local skeletonLines
+    local skeletonData = {
+        IsR6 = isR6,
+        Lines = {},
+        CurrentPositions = {},
+        TargetPositions = {}
+    }
+    
     if isR6 then
-        skeletonLines = {
-            HeadToTorso = Drawing.new("Line"),
-            TorsoToLeftArm = Drawing.new("Line"),
-            TorsoToRightArm = Drawing.new("Line"),
-            TorsoToLeftLeg = Drawing.new("Line"),
-            TorsoToRightLeg = Drawing.new("Line")
-        }
+        local lineNames = {"HeadToTorso", "TorsoToLeftArm", "TorsoToRightArm", "TorsoToLeftLeg", "TorsoToRightLeg"}
+        for _, name in ipairs(lineNames) do
+            local line = Drawing.new("Line")
+            line.Thickness = 2
+            line.Color = self.Config.SkeletonColor
+            line.Visible = false
+            line.Transparency = 1
+            skeletonData.Lines[name] = line
+            skeletonData.CurrentPositions[name .. "From"] = Vector2.new(0, 0)
+            skeletonData.CurrentPositions[name .. "To"] = Vector2.new(0, 0)
+            skeletonData.TargetPositions[name .. "From"] = Vector2.new(0, 0)
+            skeletonData.TargetPositions[name .. "To"] = Vector2.new(0, 0)
+        end
     else
-        skeletonLines = {
-            HeadToUpperTorso = Drawing.new("Line"),
-            UpperTorsoToLowerTorso = Drawing.new("Line"),
-            UpperTorsoToLeftUpperArm = Drawing.new("Line"),
-            LeftUpperArmToLeftLowerArm = Drawing.new("Line"),
-            LeftLowerArmToLeftHand = Drawing.new("Line"),
-            UpperTorsoToRightUpperArm = Drawing.new("Line"),
-            RightUpperArmToRightLowerArm = Drawing.new("Line"),
-            RightLowerArmToRightHand = Drawing.new("Line"),
-            LowerTorsoToLeftUpperLeg = Drawing.new("Line"),
-            LeftUpperLegToLeftLowerLeg = Drawing.new("Line"),
-            LeftLowerLegToLeftFoot = Drawing.new("Line"),
-            LowerTorsoToRightUpperLeg = Drawing.new("Line"),
-            RightUpperLegToRightLowerLeg = Drawing.new("Line"),
-            RightLowerLegToRightFoot = Drawing.new("Line")
+        local lineNames = {
+            "HeadToUpperTorso", "UpperTorsoToLowerTorso",
+            "UpperTorsoToLeftUpperArm", "LeftUpperArmToLeftLowerArm", "LeftLowerArmToLeftHand",
+            "UpperTorsoToRightUpperArm", "RightUpperArmToRightLowerArm", "RightLowerArmToRightHand",
+            "LowerTorsoToLeftUpperLeg", "LeftUpperLegToLeftLowerLeg", "LeftLowerLegToLeftFoot",
+            "LowerTorsoToRightUpperLeg", "RightUpperLegToRightLowerLeg", "RightLowerLegToRightFoot"
         }
+        for _, name in ipairs(lineNames) do
+            local line = Drawing.new("Line")
+            line.Thickness = 2
+            line.Color = self.Config.SkeletonColor
+            line.Visible = false
+            line.Transparency = 1
+            skeletonData.Lines[name] = line
+            skeletonData.CurrentPositions[name .. "From"] = Vector2.new(0, 0)
+            skeletonData.CurrentPositions[name .. "To"] = Vector2.new(0, 0)
+            skeletonData.TargetPositions[name .. "From"] = Vector2.new(0, 0)
+            skeletonData.TargetPositions[name .. "To"] = Vector2.new(0, 0)
+        end
     end
     
-    for _, line in pairs(skeletonLines) do
-        line.Thickness = 1.5
-        line.Color = self.Config.SkeletonColor
-        line.Visible = false
-    end
-    
-    return skeletonLines
+    skeletonData.Initialized = false
+    return skeletonData
 end
 
 function espModule:CreateTracer(_)
-    local tracerLine = Drawing.new("Line")
-    tracerLine.Thickness = 1
-    tracerLine.Color = self.Config.TracerColor
-    tracerLine.Visible = false
-    return tracerLine
+    local tracerData = {
+        Line = Drawing.new("Line"),
+        CurrentFrom = Vector2.new(0, 0),
+        CurrentTo = Vector2.new(0, 0),
+        TargetFrom = Vector2.new(0, 0),
+        TargetTo = Vector2.new(0, 0),
+        Initialized = false
+    }
+    
+    tracerData.Line.Thickness = 1.5
+    tracerData.Line.Color = self.Config.TracerColor
+    tracerData.Line.Visible = false
+    tracerData.Line.Transparency = 1
+    
+    return tracerData
 end
 
 function espModule:CreateChams(targetPlayer)
@@ -374,18 +392,16 @@ function espModule:ClearBox(targetPlayer)
     if cache then
         pcall(function() cache.Box:Remove() end)
         pcall(function() cache.BoxOutline:Remove() end)
-        pcall(function() cache.BoxTop:Remove() end)
-        pcall(function() cache.BoxBottom:Remove() end)
-        pcall(function() cache.BoxLeft:Remove() end)
-        pcall(function() cache.BoxRight:Remove() end)
         pcall(function() cache.Name:Remove() end)
         pcall(function() cache.Distance:Remove() end)
-        pcall(function() cache.HealthText:Destroy() end)
-        pcall(function() cache.HealthBarBackground:Destroy() end)
-        pcall(function() cache.HealthBar:Destroy() end)
-        pcall(function() cache.ArmorText:Destroy() end)
-        pcall(function() cache.ArmorBarBackground:Destroy() end)
-        pcall(function() cache.ArmorBar:Destroy() end)
+        pcall(function() cache.HealthText:Remove() end)
+        pcall(function() cache.HealthBarBackground:Remove() end)
+        pcall(function() cache.HealthBar:Remove() end)
+        pcall(function() cache.HealthBarOutline:Remove() end)
+        pcall(function() cache.ArmorText:Remove() end)
+        pcall(function() cache.ArmorBarBackground:Remove() end)
+        pcall(function() cache.ArmorBar:Remove() end)
+        pcall(function() cache.ArmorBarOutline:Remove() end)
         pcall(function() cache.FillFrame:Destroy() end)
         self.Caches.BoxCache[targetPlayer] = nil
     end
@@ -394,7 +410,7 @@ end
 function espModule:ClearSkeleton(targetPlayer)
     local cache = self.Caches.SkeletonCache[targetPlayer]
     if cache then
-        for _, line in pairs(cache) do
+        for _, line in pairs(cache.Lines) do
             pcall(function() line:Remove() end)
         end
         self.Caches.SkeletonCache[targetPlayer] = nil
@@ -404,7 +420,7 @@ end
 function espModule:ClearTracer(targetPlayer)
     local cache = self.Caches.TracerCache[targetPlayer]
     if cache then
-        pcall(function() cache:Remove() end)
+        pcall(function() cache.Line:Remove() end)
         self.Caches.TracerCache[targetPlayer] = nil
     end
 end
@@ -466,23 +482,19 @@ function espModule:HideBox(targetPlayer)
         boxDrawings.HealthText.Visible = false
         boxDrawings.HealthBar.Visible = false
         boxDrawings.HealthBarBackground.Visible = false
-        boxDrawings.BoxTop.Visible = false
-        boxDrawings.BoxBottom.Visible = false
-        boxDrawings.BoxLeft.Visible = false
-        boxDrawings.BoxRight.Visible = false
+        boxDrawings.HealthBarOutline.Visible = false
         boxDrawings.ArmorText.Visible = false
         boxDrawings.ArmorBar.Visible = false
         boxDrawings.ArmorBarBackground.Visible = false
+        boxDrawings.ArmorBarOutline.Visible = false
         if boxDrawings.Stroke then boxDrawings.Stroke.Enabled = false end
-        if boxDrawings.HealthBarOutline then boxDrawings.HealthBarOutline.Enabled = false end
-        if boxDrawings.ArmorBarOutline then boxDrawings.ArmorBarOutline.Enabled = false end
     end
 end
 
 function espModule:HideSkeleton(targetPlayer)
     local cache = self.Caches.SkeletonCache[targetPlayer]
     if cache then
-        for _, line in pairs(cache) do
+        for _, line in pairs(cache.Lines) do
             line.Visible = false
         end
     end
@@ -491,7 +503,7 @@ end
 function espModule:HideTracer(targetPlayer)
     local cache = self.Caches.TracerCache[targetPlayer]
     if cache then
-        cache.Visible = false
+        cache.Line.Visible = false
     end
 end
 
@@ -502,7 +514,7 @@ function espModule:HideRing(targetPlayer)
     end
 end
 
-function espModule:UpdateBox()
+function espModule:UpdateBox(dt)
     if not self or not self.State or not self.Config or not self.Caches then return end
     
     local shouldDraw = isAnyBoxFeatureEnabled(self)
@@ -525,6 +537,9 @@ function espModule:UpdateBox()
 
     local cameraPos = currentCamera.CFrame.Position
     local activePlayers = {}
+    local posLerp = math.clamp(self.Config.PositionLerpSpeed * dt * 60, 0, 1)
+    local colorLerp = math.clamp(self.Config.ColorLerpSpeed * dt * 60, 0, 1)
+    local healthLerp = math.clamp(self.Config.HealthBarLerpSpeed * dt * 60, 0, 1)
 
     for _, otherPlayer in ipairs(playersService:GetPlayers()) do
         if otherPlayer ~= localPlayer then
@@ -554,22 +569,43 @@ function espModule:UpdateBox()
                 end
                 
                 local headPart = otherCharacter:FindFirstChild("Head")
-                local headTopPos = (headPart and headPart.Position + Vector3.new(0, 1, 0)) or (otherRoot.Position + Vector3.new(0, 3, 0))
+                local headTopPos = (headPart and headPart.Position + Vector3.new(0, 0.8, 0)) or (otherRoot.Position + Vector3.new(0, 2.5, 0))
                 local feetPos = otherRoot.Position - Vector3.new(0, 3, 0)
 
                 local headTopScreenPos = currentCamera:WorldToViewportPoint(headTopPos)
                 local feetScreenPos = currentCamera:WorldToViewportPoint(feetPos)
 
                 local height = math.abs(headTopScreenPos.Y - feetScreenPos.Y)
-                local width = height * 0.60
+                local width = height * 0.55
                 
                 local centerPos = Vector2.new(rootScreenPos.X, (headTopScreenPos.Y + feetScreenPos.Y) / 2)
-                local topLeft = centerPos - Vector2.new(width / 2, height / 2)
+                local targetTopLeft = centerPos - Vector2.new(width / 2, height / 2)
+                local targetSize = Vector2.new(width, height)
+                
+                if not boxDrawings.Initialized then
+                    boxDrawings.CurrentPosition = targetTopLeft
+                    boxDrawings.CurrentSize = targetSize
+                    boxDrawings.Initialized = true
+                else
+                    boxDrawings.CurrentPosition = lerpVector2(boxDrawings.CurrentPosition, targetTopLeft, posLerp)
+                    boxDrawings.CurrentSize = lerpVector2(boxDrawings.CurrentSize, targetSize, posLerp)
+                end
+                
+                local smoothTopLeft = boxDrawings.CurrentPosition
+                local smoothSize = boxDrawings.CurrentSize
+                local smoothWidth = smoothSize.X
+                local smoothHeight = smoothSize.Y
+                local smoothCenterX = smoothTopLeft.X + smoothWidth / 2
                 
                 local currentHealthVal = otherHumanoid.Health
                 local maxHealthVal = otherHumanoid.MaxHealth
-                boxDrawings.TargetHealth = (currentHealthVal / maxHealthVal) * 100
-                boxDrawings.CurrentHealth = lerpNumber(boxDrawings.CurrentHealth or 100, boxDrawings.TargetHealth, self.Config.HealthBarLerpSpeed or 0.2)
+                local healthPercent = (currentHealthVal / maxHealthVal) * 100
+                
+                boxDrawings.TargetHealth = healthPercent
+                boxDrawings.CurrentHealth = lerpNumber(boxDrawings.CurrentHealth, boxDrawings.TargetHealth, healthLerp)
+                
+                local targetHealthColor = getHealthColor(boxDrawings.CurrentHealth, self.Config)
+                boxDrawings.CurrentHealthColor = lerpColor3(boxDrawings.CurrentHealthColor, targetHealthColor, colorLerp)
                 
                 if self.State.BoxEnabled then
                     boxDrawings.Box.Visible = false
@@ -577,25 +613,24 @@ function espModule:UpdateBox()
                     boxDrawings.FillFrame.Visible = false
 
                     if self.Config.BoxGradientEnabled then
-                        boxDrawings.FillFrame.Position = UDim2.fromOffset(topLeft.X, topLeft.Y)
-                        boxDrawings.FillFrame.Size = UDim2.fromOffset(width, height)
-                        boxDrawings.FillFrame.BackgroundTransparency = self.Config.BoxFillTransparency or 0.5
+                        boxDrawings.FillFrame.Position = UDim2.fromOffset(smoothTopLeft.X, smoothTopLeft.Y)
+                        boxDrawings.FillFrame.Size = UDim2.fromOffset(smoothWidth, smoothHeight)
+                        boxDrawings.FillFrame.BackgroundTransparency = self.Config.BoxFillTransparency
                         boxDrawings.FillFrame.Visible = true
-                        
                         boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
-                        boxDrawings.Stroke.Color = self.Config.BoxOutlineColor or Color3.new(1,1,1)
+                        boxDrawings.Stroke.Color = self.Config.BoxOutlineColor
                     else
-                        boxDrawings.Box.Size = Vector2.new(width, height)
-                        boxDrawings.Box.Position = topLeft
-                        boxDrawings.Box.Color = self.Config.BoxColor or Color3.new(1,1,1)
-                        boxDrawings.Box.Visible = true
-                        
                         if self.Config.BoxOutlineEnabled then
-                            boxDrawings.BoxOutline.Size = Vector2.new(width, height)
-                            boxDrawings.BoxOutline.Position = topLeft
-                            boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor or Color3.new(0,0,0)
+                            boxDrawings.BoxOutline.Size = Vector2.new(smoothWidth, smoothHeight)
+                            boxDrawings.BoxOutline.Position = smoothTopLeft
+                            boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
                             boxDrawings.BoxOutline.Visible = true
                         end
+                        
+                        boxDrawings.Box.Size = Vector2.new(smoothWidth, smoothHeight)
+                        boxDrawings.Box.Position = smoothTopLeft
+                        boxDrawings.Box.Color = self.Config.BoxColor
+                        boxDrawings.Box.Visible = true
                     end
                 else
                     boxDrawings.Box.Visible = false
@@ -605,7 +640,7 @@ function espModule:UpdateBox()
                 end
 
                 if self.State.NameEnabled then
-                    boxDrawings.Name.Position = Vector2.new(centerPos.X, headTopScreenPos.Y - 20)
+                    boxDrawings.Name.Position = Vector2.new(smoothCenterX, smoothTopLeft.Y - 18)
                     boxDrawings.Name.Text = otherPlayer.Name
                     boxDrawings.Name.Visible = true
                 else
@@ -613,77 +648,89 @@ function espModule:UpdateBox()
                 end
 
                 if self.State.DistanceEnabled then
-                    boxDrawings.Distance.Position = Vector2.new(centerPos.X, feetScreenPos.Y + 5)
-                    boxDrawings.Distance.Text = math.floor(distance) .. " studs"
+                    boxDrawings.Distance.Position = Vector2.new(smoothCenterX, smoothTopLeft.Y + smoothHeight + 3)
+                    boxDrawings.Distance.Text = math.floor(distance) .. "m"
                     boxDrawings.Distance.Visible = true
                 else
                     boxDrawings.Distance.Visible = false
                 end
 
-                local barX = topLeft.X - 5
-                local barY = topLeft.Y
+                local barX = smoothTopLeft.X - 6
+                local barY = smoothTopLeft.Y
 
                 if self.State.HealthBarEnabled or self.State.HealthTextEnabled then
-                    local health_per = math.floor((otherHumanoid.Health / otherHumanoid.MaxHealth) * 100)
-                    local c1 = self.Config.HealthBarColor1 or Color3.new(0,1,0)
-                    local c2 = self.Config.HealthBarColor2 or Color3.new(1,1,0)
-                    local c3 = self.Config.HealthBarColor3 or Color3.new(1,0,0)
-                    local health_color = health_per >= 75 and c1 or health_per >= 50 and c2 or c3
-
+                    local displayHealth = math.floor(boxDrawings.CurrentHealth)
+                    
                     if self.State.HealthTextEnabled then
-                        local textY = barY + height * (1 - health_per / 100)
-                        textY = math.clamp(textY, barY, barY + height - 10)
+                        local textY = barY + smoothHeight * (1 - boxDrawings.CurrentHealth / 100)
+                        textY = math.clamp(textY, barY, barY + smoothHeight - 10)
                         
-                        boxDrawings.HealthText.Position = UDim2.new(0, barX - 20, 0, textY)
-                        boxDrawings.HealthText.Text = tostring(health_per)
-                        boxDrawings.HealthText.TextColor3 = health_color
+                        boxDrawings.HealthText.Position = Vector2.new(barX - 18, textY - 6)
+                        boxDrawings.HealthText.Text = tostring(displayHealth)
+                        boxDrawings.HealthText.Color = boxDrawings.CurrentHealthColor
                         boxDrawings.HealthText.Visible = true
                     else
                         boxDrawings.HealthText.Visible = false
                     end
 
                     if self.State.HealthBarEnabled then
-                        local barHeight = height * (health_per / 100)
-                        boxDrawings.HealthBar.Size = UDim2.new(0, 2, 0, barHeight)
-                        boxDrawings.HealthBar.Position = UDim2.new(0, barX, 0, barY + height - barHeight)
-                        boxDrawings.HealthBar.Visible = true
+                        local barHeight = smoothHeight * (boxDrawings.CurrentHealth / 100)
                         
-                        boxDrawings.HealthBarBackground.Size = UDim2.new(0, 2, 0, height)
-                        boxDrawings.HealthBarBackground.Position = UDim2.new(0, barX, 0, barY)
+                        boxDrawings.HealthBarOutline.Size = Vector2.new(4, smoothHeight + 2)
+                        boxDrawings.HealthBarOutline.Position = Vector2.new(barX - 1, barY - 1)
+                        boxDrawings.HealthBarOutline.Visible = true
+                        
+                        boxDrawings.HealthBarBackground.Size = Vector2.new(2, smoothHeight)
+                        boxDrawings.HealthBarBackground.Position = Vector2.new(barX, barY)
                         boxDrawings.HealthBarBackground.Visible = true
-                        boxDrawings.HealthBarOutline.Enabled = true
+                        
+                        boxDrawings.HealthBar.Size = Vector2.new(2, barHeight)
+                        boxDrawings.HealthBar.Position = Vector2.new(barX, barY + smoothHeight - barHeight)
+                        boxDrawings.HealthBar.Color = boxDrawings.CurrentHealthColor
+                        boxDrawings.HealthBar.Visible = true
                     else
                         boxDrawings.HealthBar.Visible = false
                         boxDrawings.HealthBarBackground.Visible = false
-                        boxDrawings.HealthBarOutline.Enabled = false
+                        boxDrawings.HealthBarOutline.Visible = false
                     end
                 else
                     boxDrawings.HealthText.Visible = false
                     boxDrawings.HealthBar.Visible = false
                     boxDrawings.HealthBarBackground.Visible = false
-                    boxDrawings.HealthBarOutline.Enabled = false
+                    boxDrawings.HealthBarOutline.Visible = false
                 end
 
                 if self.State.ArmorBarEnabled then
                     local bodyEffects = otherCharacter:FindFirstChild("BodyEffects")
                     local armorVal = (bodyEffects and bodyEffects:FindFirstChild("Armor")) and bodyEffects.Armor.Value or 0
-                    local armor_per = math.floor((armorVal / 200) * 100)
+                    local armorPercent = math.clamp((armorVal / 200) * 100, 0, 100)
+                    
+                    boxDrawings.TargetArmor = armorPercent
+                    boxDrawings.CurrentArmor = lerpNumber(boxDrawings.CurrentArmor, boxDrawings.TargetArmor, healthLerp)
 
-                    local armor_bar_x = barX - 6
-                    local armor_bar_height = height * (armor_per / 100)
+                    local armorBarX = smoothTopLeft.X + smoothWidth + 2
+                    local armorBarHeight = smoothHeight * (boxDrawings.CurrentArmor / 100)
                     
-                    boxDrawings.ArmorBar.Size = UDim2.new(0, 2, 0, armor_bar_height)
-                    boxDrawings.ArmorBar.Position = UDim2.new(0, armor_bar_x, 0, barY + height - armor_bar_height)
-                    boxDrawings.ArmorBar.Visible = true
+                    boxDrawings.ArmorBarOutline.Size = Vector2.new(4, smoothHeight + 2)
+                    boxDrawings.ArmorBarOutline.Position = Vector2.new(armorBarX - 1, barY - 1)
+                    boxDrawings.ArmorBarOutline.Visible = true
                     
-                    boxDrawings.ArmorBarBackground.Size = UDim2.new(0, 2, 0, height)
-                    boxDrawings.ArmorBarBackground.Position = UDim2.new(0, armor_bar_x, 0, barY)
+                    boxDrawings.ArmorBarBackground.Size = Vector2.new(2, smoothHeight)
+                    boxDrawings.ArmorBarBackground.Position = Vector2.new(armorBarX, barY)
                     boxDrawings.ArmorBarBackground.Visible = true
-                    boxDrawings.ArmorBarOutline.Enabled = true
                     
-                    if self.State.HealthTextEnabled and armor_per > 0 then
-                        boxDrawings.ArmorText.Position = UDim2.new(0, armor_bar_x - 15, 0, barY + height - armor_bar_height)
-                        boxDrawings.ArmorText.Text = tostring(armor_per)
+                    boxDrawings.ArmorBar.Size = Vector2.new(2, armorBarHeight)
+                    boxDrawings.ArmorBar.Position = Vector2.new(armorBarX, barY + smoothHeight - armorBarHeight)
+                    boxDrawings.ArmorBar.Color = self.Config.ArmorBarColor
+                    boxDrawings.ArmorBar.Visible = boxDrawings.CurrentArmor > 0
+                    
+                    if self.State.HealthTextEnabled and boxDrawings.CurrentArmor > 0 then
+                        local armorTextY = barY + smoothHeight * (1 - boxDrawings.CurrentArmor / 100)
+                        armorTextY = math.clamp(armorTextY, barY, barY + smoothHeight - 10)
+                        
+                        boxDrawings.ArmorText.Position = Vector2.new(armorBarX + 6, armorTextY - 6)
+                        boxDrawings.ArmorText.Text = tostring(math.floor(boxDrawings.CurrentArmor))
+                        boxDrawings.ArmorText.Color = self.Config.ArmorBarColor
                         boxDrawings.ArmorText.Visible = true
                     else
                         boxDrawings.ArmorText.Visible = false
@@ -691,7 +738,7 @@ function espModule:UpdateBox()
                 else
                     boxDrawings.ArmorBar.Visible = false
                     boxDrawings.ArmorBarBackground.Visible = false
-                    boxDrawings.ArmorBarOutline.Enabled = false
+                    boxDrawings.ArmorBarOutline.Visible = false
                     boxDrawings.ArmorText.Visible = false
                 end
             end)
@@ -709,7 +756,7 @@ function espModule:UpdateBox()
     end
 end
 
-function espModule:UpdateSkeleton()
+function espModule:UpdateSkeleton(dt)
     if not self.State.SkeletonEnabled then
         self:ClearAllSkeletons()
         return
@@ -721,6 +768,7 @@ function espModule:UpdateSkeleton()
     end
     
     local activePlayers = {}
+    local posLerp = math.clamp(self.Config.PositionLerpSpeed * dt * 60, 0, 1)
     
     for _, otherPlayer in ipairs(playersService:GetPlayers()) do
         if otherPlayer ~= localPlayer then
@@ -737,8 +785,8 @@ function espModule:UpdateSkeleton()
                 self.Caches.SkeletonCache[otherPlayer] = self:CreateSkeleton(otherPlayer)
             end
             
-            local skeletonLines = self.Caches.SkeletonCache[otherPlayer]
-            local isR6 = otherCharacter:FindFirstChild("Torso") and not otherCharacter:FindFirstChild("UpperTorso")
+            local skeletonData = self.Caches.SkeletonCache[otherPlayer]
+            local isR6 = skeletonData.IsR6
             
             local function getScreenPos(partName)
                 local part = otherCharacter:FindFirstChild(partName)
@@ -747,6 +795,30 @@ function espModule:UpdateSkeleton()
                     return Vector2.new(screenPos.X, screenPos.Y), onScreen
                 end
                 return Vector2.new(0, 0), false
+            end
+            
+            local function updateLine(lineName, fromPos, toPos, fromOn, toOn)
+                local line = skeletonData.Lines[lineName]
+                if not line then return end
+                
+                local fromKey = lineName .. "From"
+                local toKey = lineName .. "To"
+                
+                skeletonData.TargetPositions[fromKey] = fromPos
+                skeletonData.TargetPositions[toKey] = toPos
+                
+                if not skeletonData.Initialized then
+                    skeletonData.CurrentPositions[fromKey] = fromPos
+                    skeletonData.CurrentPositions[toKey] = toPos
+                else
+                    skeletonData.CurrentPositions[fromKey] = lerpVector2(skeletonData.CurrentPositions[fromKey], fromPos, posLerp)
+                    skeletonData.CurrentPositions[toKey] = lerpVector2(skeletonData.CurrentPositions[toKey], toPos, posLerp)
+                end
+                
+                line.From = skeletonData.CurrentPositions[fromKey]
+                line.To = skeletonData.CurrentPositions[toKey]
+                line.Color = self.Config.SkeletonColor
+                line.Visible = fromOn and toOn
             end
             
             local allOnScreen = true
@@ -759,33 +831,14 @@ function espModule:UpdateSkeleton()
                 local leftLegPos, leftLegOn = getScreenPos("Left Leg")
                 local rightLegPos, rightLegOn = getScreenPos("Right Leg")
                 
-                allOnScreen = headOn and torsoOn and leftArmOn and rightArmOn and leftLegOn and rightLegOn
+                allOnScreen = headOn and torsoOn
                 
                 if allOnScreen then
-                    skeletonLines.HeadToTorso.From = headPos
-                    skeletonLines.HeadToTorso.To = torsoPos
-                    skeletonLines.HeadToTorso.Color = self.Config.SkeletonColor
-                    skeletonLines.HeadToTorso.Visible = true
-                    
-                    skeletonLines.TorsoToLeftArm.From = torsoPos
-                    skeletonLines.TorsoToLeftArm.To = leftArmPos
-                    skeletonLines.TorsoToLeftArm.Color = self.Config.SkeletonColor
-                    skeletonLines.TorsoToLeftArm.Visible = true
-                    
-                    skeletonLines.TorsoToRightArm.From = torsoPos
-                    skeletonLines.TorsoToRightArm.To = rightArmPos
-                    skeletonLines.TorsoToRightArm.Color = self.Config.SkeletonColor
-                    skeletonLines.TorsoToRightArm.Visible = true
-                    
-                    skeletonLines.TorsoToLeftLeg.From = torsoPos
-                    skeletonLines.TorsoToLeftLeg.To = leftLegPos
-                    skeletonLines.TorsoToLeftLeg.Color = self.Config.SkeletonColor
-                    skeletonLines.TorsoToLeftLeg.Visible = true
-                    
-                    skeletonLines.TorsoToRightLeg.From = torsoPos
-                    skeletonLines.TorsoToRightLeg.To = rightLegPos
-                    skeletonLines.TorsoToRightLeg.Color = self.Config.SkeletonColor
-                    skeletonLines.TorsoToRightLeg.Visible = true
+                    updateLine("HeadToTorso", headPos, torsoPos, headOn, torsoOn)
+                    updateLine("TorsoToLeftArm", torsoPos, leftArmPos, torsoOn, leftArmOn)
+                    updateLine("TorsoToRightArm", torsoPos, rightArmPos, torsoOn, rightArmOn)
+                    updateLine("TorsoToLeftLeg", torsoPos, leftLegPos, torsoOn, leftLegOn)
+                    updateLine("TorsoToRightLeg", torsoPos, rightLegPos, torsoOn, rightLegOn)
                 else
                     self:HideSkeleton(otherPlayer)
                 end
@@ -806,82 +859,29 @@ function espModule:UpdateSkeleton()
                 local rightLowerLegPos, rightLowerLegOn = getScreenPos("RightLowerLeg")
                 local rightFootPos, rightFootOn = getScreenPos("RightFoot")
                 
-                allOnScreen = headOn and upperTorsoOn and lowerTorsoOn and leftUpperArmOn and leftLowerArmOn and leftHandOn and rightUpperArmOn and rightLowerArmOn and rightHandOn and leftUpperLegOn and leftLowerLegOn and leftFootOn and rightUpperLegOn and rightLowerLegOn and rightFootOn
+                allOnScreen = headOn and upperTorsoOn and lowerTorsoOn
                 
                 if allOnScreen then
-                    skeletonLines.HeadToUpperTorso.From = headPos
-                    skeletonLines.HeadToUpperTorso.To = upperTorsoPos
-                    skeletonLines.HeadToUpperTorso.Color = self.Config.SkeletonColor
-                    skeletonLines.HeadToUpperTorso.Visible = true
-                    
-                    skeletonLines.UpperTorsoToLowerTorso.From = upperTorsoPos
-                    skeletonLines.UpperTorsoToLowerTorso.To = lowerTorsoPos
-                    skeletonLines.UpperTorsoToLowerTorso.Color = self.Config.SkeletonColor
-                    skeletonLines.UpperTorsoToLowerTorso.Visible = true
-                    
-                    skeletonLines.UpperTorsoToLeftUpperArm.From = upperTorsoPos
-                    skeletonLines.UpperTorsoToLeftUpperArm.To = leftUpperArmPos
-                    skeletonLines.UpperTorsoToLeftUpperArm.Color = self.Config.SkeletonColor
-                    skeletonLines.UpperTorsoToLeftUpperArm.Visible = true
-                    
-                    skeletonLines.LeftUpperArmToLeftLowerArm.From = leftUpperArmPos
-                    skeletonLines.LeftUpperArmToLeftLowerArm.To = leftLowerArmPos
-                    skeletonLines.LeftUpperArmToLeftLowerArm.Color = self.Config.SkeletonColor
-                    skeletonLines.LeftUpperArmToLeftLowerArm.Visible = true
-                    
-                    skeletonLines.LeftLowerArmToLeftHand.From = leftLowerArmPos
-                    skeletonLines.LeftLowerArmToLeftHand.To = leftHandPos
-                    skeletonLines.LeftLowerArmToLeftHand.Color = self.Config.SkeletonColor
-                    skeletonLines.LeftLowerArmToLeftHand.Visible = true
-                    
-                    skeletonLines.UpperTorsoToRightUpperArm.From = upperTorsoPos
-                    skeletonLines.UpperTorsoToRightUpperArm.To = rightUpperArmPos
-                    skeletonLines.UpperTorsoToRightUpperArm.Color = self.Config.SkeletonColor
-                    skeletonLines.UpperTorsoToRightUpperArm.Visible = true
-                    
-                    skeletonLines.RightUpperArmToRightLowerArm.From = rightUpperArmPos
-                    skeletonLines.RightUpperArmToRightLowerArm.To = rightLowerArmPos
-                    skeletonLines.RightUpperArmToRightLowerArm.Color = self.Config.SkeletonColor
-                    skeletonLines.RightUpperArmToRightLowerArm.Visible = true
-                    
-                    skeletonLines.RightLowerArmToRightHand.From = rightLowerArmPos
-                    skeletonLines.RightLowerArmToRightHand.To = rightHandPos
-                    skeletonLines.RightLowerArmToRightHand.Color = self.Config.SkeletonColor
-                    skeletonLines.RightLowerArmToRightHand.Visible = true
-                    
-                    skeletonLines.LowerTorsoToLeftUpperLeg.From = lowerTorsoPos
-                    skeletonLines.LowerTorsoToLeftUpperLeg.To = leftUpperLegPos
-                    skeletonLines.LowerTorsoToLeftUpperLeg.Color = self.Config.SkeletonColor
-                    skeletonLines.LowerTorsoToLeftUpperLeg.Visible = true
-                    
-                    skeletonLines.LeftUpperLegToLeftLowerLeg.From = leftUpperLegPos
-                    skeletonLines.LeftUpperLegToLeftLowerLeg.To = leftLowerLegPos
-                    skeletonLines.LeftUpperLegToLeftLowerLeg.Color = self.Config.SkeletonColor
-                    skeletonLines.LeftUpperLegToLeftLowerLeg.Visible = true
-                    
-                    skeletonLines.LeftLowerLegToLeftFoot.From = leftLowerLegPos
-                    skeletonLines.LeftLowerLegToLeftFoot.To = leftFootPos
-                    skeletonLines.LeftLowerLegToLeftFoot.Color = self.Config.SkeletonColor
-                    skeletonLines.LeftLowerLegToLeftFoot.Visible = true
-                    
-                    skeletonLines.LowerTorsoToRightUpperLeg.From = lowerTorsoPos
-                    skeletonLines.LowerTorsoToRightUpperLeg.To = rightUpperLegPos
-                    skeletonLines.LowerTorsoToRightUpperLeg.Color = self.Config.SkeletonColor
-                    skeletonLines.LowerTorsoToRightUpperLeg.Visible = true
-                    
-                    skeletonLines.RightUpperLegToRightLowerLeg.From = rightUpperLegPos
-                    skeletonLines.RightUpperLegToRightLowerLeg.To = rightLowerLegPos
-                    skeletonLines.RightUpperLegToRightLowerLeg.Color = self.Config.SkeletonColor
-                    skeletonLines.RightUpperLegToRightLowerLeg.Visible = true
-                    
-                    skeletonLines.RightLowerLegToRightFoot.From = rightLowerLegPos
-                    skeletonLines.RightLowerLegToRightFoot.To = rightFootPos
-                    skeletonLines.RightLowerLegToRightFoot.Color = self.Config.SkeletonColor
-                    skeletonLines.RightLowerLegToRightFoot.Visible = true
+                    updateLine("HeadToUpperTorso", headPos, upperTorsoPos, headOn, upperTorsoOn)
+                    updateLine("UpperTorsoToLowerTorso", upperTorsoPos, lowerTorsoPos, upperTorsoOn, lowerTorsoOn)
+                    updateLine("UpperTorsoToLeftUpperArm", upperTorsoPos, leftUpperArmPos, upperTorsoOn, leftUpperArmOn)
+                    updateLine("LeftUpperArmToLeftLowerArm", leftUpperArmPos, leftLowerArmPos, leftUpperArmOn, leftLowerArmOn)
+                    updateLine("LeftLowerArmToLeftHand", leftLowerArmPos, leftHandPos, leftLowerArmOn, leftHandOn)
+                    updateLine("UpperTorsoToRightUpperArm", upperTorsoPos, rightUpperArmPos, upperTorsoOn, rightUpperArmOn)
+                    updateLine("RightUpperArmToRightLowerArm", rightUpperArmPos, rightLowerArmPos, rightUpperArmOn, rightLowerArmOn)
+                    updateLine("RightLowerArmToRightHand", rightLowerArmPos, rightHandPos, rightLowerArmOn, rightHandOn)
+                    updateLine("LowerTorsoToLeftUpperLeg", lowerTorsoPos, leftUpperLegPos, lowerTorsoOn, leftUpperLegOn)
+                    updateLine("LeftUpperLegToLeftLowerLeg", leftUpperLegPos, leftLowerLegPos, leftUpperLegOn, leftLowerLegOn)
+                    updateLine("LeftLowerLegToLeftFoot", leftLowerLegPos, leftFootPos, leftLowerLegOn, leftFootOn)
+                    updateLine("LowerTorsoToRightUpperLeg", lowerTorsoPos, rightUpperLegPos, lowerTorsoOn, rightUpperLegOn)
+                    updateLine("RightUpperLegToRightLowerLeg", rightUpperLegPos, rightLowerLegPos, rightUpperLegOn, rightLowerLegOn)
+                    updateLine("RightLowerLegToRightFoot", rightLowerLegPos, rightFootPos, rightLowerLegOn, rightFootOn)
                 else
                     self:HideSkeleton(otherPlayer)
                 end
             end
+            
+            skeletonData.Initialized = true
         end
     end
     
@@ -892,7 +892,7 @@ function espModule:UpdateSkeleton()
     end
 end
 
-function espModule:UpdateTracer()
+function espModule:UpdateTracer(dt)
     if not self.State.TracerEnabled then
         self:ClearAllTracers()
         return
@@ -915,6 +915,7 @@ function espModule:UpdateTracer()
     end
     
     local activePlayers = {}
+    local posLerp = math.clamp(self.Config.PositionLerpSpeed * dt * 60, 0, 1)
     
     for _, otherPlayer in ipairs(playersService:GetPlayers()) do
         if otherPlayer ~= localPlayer then
@@ -926,19 +927,36 @@ function espModule:UpdateTracer()
             end
             
             local otherCharacter = otherPlayer.Character
-            local tracerTarget = otherCharacter:FindFirstChild("Head") or otherCharacter.HumanoidRootPart
+            local tracerTarget = otherCharacter:FindFirstChild("HumanoidRootPart")
+            if not tracerTarget then
+                self:ClearTracer(otherPlayer)
+                continue
+            end
             
             if not self.Caches.TracerCache[otherPlayer] then
                 self.Caches.TracerCache[otherPlayer] = self:CreateTracer(otherPlayer)
             end
             
-            local tracerLine = self.Caches.TracerCache[otherPlayer]
+            local tracerData = self.Caches.TracerCache[otherPlayer]
             local targetScreenPos, targetOnScreen = currentCamera:WorldToViewportPoint(tracerTarget.Position)
+            local targetTo = Vector2.new(targetScreenPos.X, targetScreenPos.Y)
             
-            tracerLine.From = originPos
-            tracerLine.To = Vector2.new(targetScreenPos.X, targetScreenPos.Y)
-            tracerLine.Color = self.Config.TracerColor
-            tracerLine.Visible = targetOnScreen
+            tracerData.TargetFrom = originPos
+            tracerData.TargetTo = targetTo
+            
+            if not tracerData.Initialized then
+                tracerData.CurrentFrom = originPos
+                tracerData.CurrentTo = targetTo
+                tracerData.Initialized = true
+            else
+                tracerData.CurrentFrom = lerpVector2(tracerData.CurrentFrom, originPos, posLerp)
+                tracerData.CurrentTo = lerpVector2(tracerData.CurrentTo, targetTo, posLerp)
+            end
+            
+            tracerData.Line.From = tracerData.CurrentFrom
+            tracerData.Line.To = tracerData.CurrentTo
+            tracerData.Line.Color = self.Config.TracerColor
+            tracerData.Line.Visible = targetOnScreen
         end
     end
     
@@ -1041,9 +1059,6 @@ function espModule:UpdateAnimations(dt)
     for _, boxDrawings in pairs(self.Caches.BoxCache) do
         if self.Config.BoxGradientEnabled and boxDrawings.Gradient then
             boxDrawings.Gradient.Rotation = currentRotation
-        end
-        if boxDrawings.CurrentHealth and boxDrawings.TargetHealth then
-            boxDrawings.CurrentHealth = lerpNumber(boxDrawings.CurrentHealth, boxDrawings.TargetHealth, self.Config.HealthBarLerpSpeed)
         end
     end
     
@@ -1276,9 +1291,9 @@ function espModule:Initialize()
     
     renderConnection = runService.RenderStepped:Connect(function(dt)
         safeCall(function()
-            self:UpdateBox()
-            self:UpdateSkeleton()
-            self:UpdateTracer()
+            self:UpdateBox(dt)
+            self:UpdateSkeleton(dt)
+            self:UpdateTracer(dt)
             self:UpdateChams()
             self:UpdateRing()
             self:UpdateAnimations(dt)

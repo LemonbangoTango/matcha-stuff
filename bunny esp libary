@@ -20,10 +20,14 @@ espModule.Config = {
     BoxOutlineColor = Color3.new(0, 0, 0),
     SkeletonColor = Color3.new(0.403922, 0.34902, 0.701961),
     ChamsColor = Color3.new(0.403922, 0.34902, 0.701961),
-    TracerOrigin = "Bottom Screen",
-    TracerColor = Color3.new(0.403922, 0.34902, 0.701961),
     ChamsFillTransparency = 0.5,
     ChamsOutlineColor = Color3.new(1, 1, 1),
+    WireframeColor = Color3.new(0.403922, 0.34902, 0.701961),
+    WireframeSurfaceColor = Color3.new(0.403922, 0.34902, 0.701961),
+    WireframeTransparency = 0.8,
+    WireframeSurfaceTransparency = 0.95,
+    TracerOrigin = "Bottom Screen",
+    TracerColor = Color3.new(0.403922, 0.34902, 0.701961),
     HealthBarLerpSpeed = 0.15,
     PositionLerpSpeed = 0.3,
     ColorLerpSpeed = 0.1,
@@ -47,6 +51,7 @@ espModule.State = {
     ArmorBarEnabled = false,
     TracerEnabled = false,
     ChamsEnabled = false,
+    WireframeEnabled = false,
     RingEnabled = false
 }
 
@@ -55,6 +60,7 @@ espModule.Caches = {
     SkeletonCache = {},
     TracerCache = {},
     ChamsCache = {},
+    WireframeCache = {},
     RingCache = {}
 }
 
@@ -120,6 +126,7 @@ local function isAnyESPEnabled(self)
            self.State.SkeletonEnabled or
            self.State.TracerEnabled or
            self.State.ChamsEnabled or
+           self.State.WireframeEnabled or
            self.State.RingEnabled
 end
 
@@ -365,6 +372,86 @@ function espModule:CreateChams(targetPlayer)
     return highlight
 end
 
+function espModule:CreateWireframe(targetPlayer)
+    local character = targetPlayer.Character
+    if not character then return nil end
+    
+    local wireframeData = {
+        Boxes = {},
+        SurfaceGuis = {},
+        Character = character
+    }
+    
+    local bodyParts = {
+        "Head", "Torso", "UpperTorso", "LowerTorso",
+        "Left Arm", "Right Arm", "LeftUpperArm", "LeftLowerArm", "LeftHand",
+        "RightUpperArm", "RightLowerArm", "RightHand",
+        "Left Leg", "Right Leg", "LeftUpperLeg", "LeftLowerLeg", "LeftFoot",
+        "RightUpperLeg", "RightLowerLeg", "RightFoot", "HumanoidRootPart"
+    }
+    
+    for _, partName in ipairs(bodyParts) do
+        local part = character:FindFirstChild(partName)
+        if part and part:IsA("BasePart") then
+            local box = Instance.new("BoxHandleAdornment")
+            box.Name = "WireframeBox_" .. partName
+            box.Adornee = part
+            box.AlwaysOnTop = true
+            box.ZIndex = 5
+            box.Size = part.Size + Vector3.new(0.05, 0.05, 0.05)
+            box.Color3 = self.Config.WireframeColor
+            box.Transparency = self.Config.WireframeTransparency
+            box.Parent = part
+            wireframeData.Boxes[partName] = box
+            
+            local faces = {
+                Enum.NormalId.Front,
+                Enum.NormalId.Back,
+                Enum.NormalId.Left,
+                Enum.NormalId.Right,
+                Enum.NormalId.Top,
+                Enum.NormalId.Bottom
+            }
+            
+            wireframeData.SurfaceGuis[partName] = {}
+            
+            for _, face in ipairs(faces) do
+                local surfaceGui = Instance.new("SurfaceGui")
+                surfaceGui.Name = "WireframeSurface_" .. tostring(face)
+                surfaceGui.Face = face
+                surfaceGui.Adornee = part
+                surfaceGui.AlwaysOnTop = true
+                surfaceGui.LightInfluence = 0
+                surfaceGui.ResetOnSpawn = false
+                surfaceGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+                
+                local frame = Instance.new("Frame")
+                frame.Name = "WireframeFrame"
+                frame.Size = UDim2.new(1, 0, 1, 0)
+                frame.BackgroundColor3 = self.Config.WireframeSurfaceColor
+                frame.BackgroundTransparency = self.Config.WireframeSurfaceTransparency
+                frame.BorderSizePixel = 0
+                frame.Parent = surfaceGui
+                
+                local stroke = Instance.new("UIStroke")
+                stroke.Color = self.Config.WireframeColor
+                stroke.Thickness = 2
+                stroke.Transparency = self.Config.WireframeTransparency
+                stroke.Parent = frame
+                
+                local corner = Instance.new("UICorner")
+                corner.CornerRadius = UDim.new(0, 2)
+                corner.Parent = frame
+                
+                surfaceGui.Parent = part
+                table.insert(wireframeData.SurfaceGuis[partName], surfaceGui)
+            end
+        end
+    end
+    
+    return wireframeData
+end
+
 function espModule:CreateRing(player)
     if player == localPlayer then return nil end
     local holder = Instance.new("Part")
@@ -433,6 +520,21 @@ function espModule:ClearChams(targetPlayer)
     end
 end
 
+function espModule:ClearWireframe(targetPlayer)
+    local cache = self.Caches.WireframeCache[targetPlayer]
+    if cache then
+        for _, box in pairs(cache.Boxes) do
+            pcall(function() box:Destroy() end)
+        end
+        for _, guiTable in pairs(cache.SurfaceGuis) do
+            for _, gui in ipairs(guiTable) do
+                pcall(function() gui:Destroy() end)
+            end
+        end
+        self.Caches.WireframeCache[targetPlayer] = nil
+    end
+end
+
 function espModule:ClearRing(targetPlayer)
     local cache = self.Caches.RingCache[targetPlayer]
     if cache then
@@ -462,6 +564,12 @@ end
 function espModule:ClearAllChams()
     for player, _ in pairs(self.Caches.ChamsCache) do
         self:ClearChams(player)
+    end
+end
+
+function espModule:ClearAllWireframes()
+    for player, _ in pairs(self.Caches.WireframeCache) do
+        self:ClearWireframe(player)
     end
 end
 
@@ -1007,6 +1115,74 @@ function espModule:UpdateChams()
     end
 end
 
+function espModule:UpdateWireframe()
+    if not self.State.WireframeEnabled then
+        self:ClearAllWireframes()
+        return
+    end
+    
+    if not (localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")) then
+        self:ClearAllWireframes()
+        return
+    end
+    
+    local activePlayers = {}
+    
+    for _, otherPlayer in ipairs(playersService:GetPlayers()) do
+        if otherPlayer ~= localPlayer then
+            activePlayers[otherPlayer] = true
+            
+            if not isValidTarget(self, otherPlayer) then
+                self:ClearWireframe(otherPlayer)
+                continue
+            end
+            
+            local otherCharacter = otherPlayer.Character
+            
+            if not self.Caches.WireframeCache[otherPlayer] then
+                self.Caches.WireframeCache[otherPlayer] = self:CreateWireframe(otherPlayer)
+            else
+                local wireframeData = self.Caches.WireframeCache[otherPlayer]
+                
+                if wireframeData.Character ~= otherCharacter then
+                    self:ClearWireframe(otherPlayer)
+                    self.Caches.WireframeCache[otherPlayer] = self:CreateWireframe(otherPlayer)
+                else
+                    for partName, box in pairs(wireframeData.Boxes) do
+                        if box and box.Parent then
+                            box.Color3 = self.Config.WireframeColor
+                            box.Transparency = self.Config.WireframeTransparency
+                        end
+                    end
+                    
+                    for partName, guiTable in pairs(wireframeData.SurfaceGuis) do
+                        for _, gui in ipairs(guiTable) do
+                            if gui and gui.Parent then
+                                local frame = gui:FindFirstChild("WireframeFrame")
+                                if frame then
+                                    frame.BackgroundColor3 = self.Config.WireframeSurfaceColor
+                                    frame.BackgroundTransparency = self.Config.WireframeSurfaceTransparency
+                                    local stroke = frame:FindFirstChildOfClass("UIStroke")
+                                    if stroke then
+                                        stroke.Color = self.Config.WireframeColor
+                                        stroke.Transparency = self.Config.WireframeTransparency
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    for player, _ in pairs(self.Caches.WireframeCache) do
+        if not activePlayers[player] then
+            self:ClearWireframe(player)
+        end
+    end
+end
+
 function espModule:UpdateRing()
     if not self.State.RingEnabled then
         self:ClearAllRings()
@@ -1134,6 +1310,13 @@ function espModule:SetChamsEnabled(value)
     end
 end
 
+function espModule:SetWireframeEnabled(value)
+    self.State.WireframeEnabled = value
+    if not value then
+        self:ClearAllWireframes()
+    end
+end
+
 function espModule:SetRingEnabled(value)
     self.State.RingEnabled = value
     if not value then
@@ -1182,6 +1365,12 @@ function espModule:InitiateChams(color)
     self.State.ChamsEnabled = true
 end
 
+function espModule:InitiateWireframe(color)
+    self.Config.WireframeColor = color or self.Config.WireframeColor
+    self.Config.WireframeSurfaceColor = color or self.Config.WireframeSurfaceColor
+    self.State.WireframeEnabled = true
+end
+
 function espModule:InitiateRing(color)
     self.Config.RingColor = color or self.Config.RingColor
     self.State.RingEnabled = true
@@ -1200,6 +1389,7 @@ function espModule:Cleanup()
     self:ClearAllSkeletons()
     self:ClearAllTracers()
     self:ClearAllChams()
+    self:ClearAllWireframes()
     self:ClearAllRings()
 end
 
@@ -1230,6 +1420,7 @@ function espModule:Destroy()
     self.State.ArmorBarEnabled = false
     self.State.TracerEnabled = false
     self.State.ChamsEnabled = false
+    self.State.WireframeEnabled = false
     self.State.RingEnabled = false
 end
 
@@ -1246,6 +1437,7 @@ function espModule:Initialize()
             self:ClearSkeleton(removedPlayer)
             self:ClearTracer(removedPlayer)
             self:ClearChams(removedPlayer)
+            self:ClearWireframe(removedPlayer)
             self:ClearRing(removedPlayer)
         end)
     end)
@@ -1258,6 +1450,7 @@ function espModule:Initialize()
                     self:ClearSkeleton(player)
                     self:ClearTracer(player)
                     self:ClearChams(player)
+                    self:ClearWireframe(player)
                     self:ClearRing(player)
                 end)
             end)
@@ -1271,6 +1464,7 @@ function espModule:Initialize()
                 self:ClearSkeleton(addedPlayer)
                 self:ClearTracer(addedPlayer)
                 self:ClearChams(addedPlayer)
+                self:ClearWireframe(addedPlayer)
                 self:ClearRing(addedPlayer)
             end)
             
@@ -1282,6 +1476,7 @@ function espModule:Initialize()
                         self:ClearSkeleton(addedPlayer)
                         self:ClearTracer(addedPlayer)
                         self:ClearChams(addedPlayer)
+                        self:ClearWireframe(addedPlayer)
                         self:ClearRing(addedPlayer)
                     end)
                 end)
@@ -1295,6 +1490,7 @@ function espModule:Initialize()
             self:UpdateSkeleton(dt)
             self:UpdateTracer(dt)
             self:UpdateChams()
+            self:UpdateWireframe()
             self:UpdateRing()
             self:UpdateAnimations(dt)
         end)

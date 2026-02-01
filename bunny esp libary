@@ -23,9 +23,7 @@ espModule.Config = {
     ChamsFillTransparency = 0.5,
     ChamsOutlineColor = Color3.new(1, 1, 1),
     WireframeColor = Color3.new(0.403922, 0.34902, 0.701961),
-    WireframeSurfaceColor = Color3.new(0.403922, 0.34902, 0.701961),
-    WireframeTransparency = 0.8,
-    WireframeSurfaceTransparency = 0.95,
+    WireframeThickness = 1,
     TracerOrigin = "Bottom Screen",
     TracerColor = Color3.new(0.403922, 0.34902, 0.701961),
     HealthBarLerpSpeed = 0.15,
@@ -69,6 +67,20 @@ local currentCamera = workspaceService.CurrentCamera
 local heartbeatConnection = nil
 local renderConnection = nil
 local currentRotation = 0
+
+local BODY_PARTS = {
+    "Head", "Torso", "UpperTorso", "LowerTorso",
+    "Left Arm", "Right Arm", "LeftUpperArm", "LeftLowerArm", "LeftHand",
+    "RightUpperArm", "RightLowerArm", "RightHand",
+    "Left Leg", "Right Leg", "LeftUpperLeg", "LeftLowerLeg", "LeftFoot",
+    "RightUpperLeg", "RightLowerLeg", "RightFoot"
+}
+
+local CUBE_EDGES = {
+    {1, 2}, {2, 3}, {3, 4}, {4, 1},
+    {5, 6}, {6, 7}, {7, 8}, {8, 5},
+    {1, 5}, {2, 6}, {3, 7}, {4, 8}
+}
 
 local function safeCall(callback)
     local success, errorMessage = pcall(callback)
@@ -156,6 +168,30 @@ local function isValidTarget(self, otherPlayer)
     if isTeammate(self, otherPlayer) then return false end
     
     return true
+end
+
+local function getBoxCorners(part)
+    local cf = part.CFrame
+    local size = part.Size
+    local sx, sy, sz = size.X / 2, size.Y / 2, size.Z / 2
+    
+    local corners = {
+        cf * CFrame.new(-sx, -sy, -sz),
+        cf * CFrame.new(sx, -sy, -sz),
+        cf * CFrame.new(sx, -sy, sz),
+        cf * CFrame.new(-sx, -sy, sz),
+        cf * CFrame.new(-sx, sy, -sz),
+        cf * CFrame.new(sx, sy, -sz),
+        cf * CFrame.new(sx, sy, sz),
+        cf * CFrame.new(-sx, sy, sz)
+    }
+    
+    return corners
+end
+
+local function worldToScreen(position)
+    local screenPos, onScreen = currentCamera:WorldToViewportPoint(position)
+    return Vector2.new(screenPos.X, screenPos.Y), onScreen, screenPos.Z
 end
 
 function espModule:CreateBox(_)
@@ -373,79 +409,20 @@ function espModule:CreateChams(targetPlayer)
 end
 
 function espModule:CreateWireframe(targetPlayer)
-    local character = targetPlayer.Character
-    if not character then return nil end
-    
     local wireframeData = {
-        Boxes = {},
-        SurfaceGuis = {},
-        Character = character
+        Parts = {},
+        Lines = {}
     }
     
-    local bodyParts = {
-        "Head", "Torso", "UpperTorso", "LowerTorso",
-        "Left Arm", "Right Arm", "LeftUpperArm", "LeftLowerArm", "LeftHand",
-        "RightUpperArm", "RightLowerArm", "RightHand",
-        "Left Leg", "Right Leg", "LeftUpperLeg", "LeftLowerLeg", "LeftFoot",
-        "RightUpperLeg", "RightLowerLeg", "RightFoot", "HumanoidRootPart"
-    }
-    
-    for _, partName in ipairs(bodyParts) do
-        local part = character:FindFirstChild(partName)
-        if part and part:IsA("BasePart") then
-            local box = Instance.new("BoxHandleAdornment")
-            box.Name = "WireframeBox_" .. partName
-            box.Adornee = part
-            box.AlwaysOnTop = true
-            box.ZIndex = 5
-            box.Size = part.Size + Vector3.new(0.05, 0.05, 0.05)
-            box.Color3 = self.Config.WireframeColor
-            box.Transparency = self.Config.WireframeTransparency
-            box.Parent = part
-            wireframeData.Boxes[partName] = box
-            
-            local faces = {
-                Enum.NormalId.Front,
-                Enum.NormalId.Back,
-                Enum.NormalId.Left,
-                Enum.NormalId.Right,
-                Enum.NormalId.Top,
-                Enum.NormalId.Bottom
-            }
-            
-            wireframeData.SurfaceGuis[partName] = {}
-            
-            for _, face in ipairs(faces) do
-                local surfaceGui = Instance.new("SurfaceGui")
-                surfaceGui.Name = "WireframeSurface_" .. tostring(face)
-                surfaceGui.Face = face
-                surfaceGui.Adornee = part
-                surfaceGui.AlwaysOnTop = true
-                surfaceGui.LightInfluence = 0
-                surfaceGui.ResetOnSpawn = false
-                surfaceGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-                
-                local frame = Instance.new("Frame")
-                frame.Name = "WireframeFrame"
-                frame.Size = UDim2.new(1, 0, 1, 0)
-                frame.BackgroundColor3 = self.Config.WireframeSurfaceColor
-                frame.BackgroundTransparency = self.Config.WireframeSurfaceTransparency
-                frame.BorderSizePixel = 0
-                frame.Parent = surfaceGui
-                
-                local stroke = Instance.new("UIStroke")
-                stroke.Color = self.Config.WireframeColor
-                stroke.Thickness = 2
-                stroke.Transparency = self.Config.WireframeTransparency
-                stroke.Parent = frame
-                
-                local corner = Instance.new("UICorner")
-                corner.CornerRadius = UDim.new(0, 2)
-                corner.Parent = frame
-                
-                surfaceGui.Parent = part
-                table.insert(wireframeData.SurfaceGuis[partName], surfaceGui)
-            end
+    for _, partName in ipairs(BODY_PARTS) do
+        wireframeData.Lines[partName] = {}
+        for i = 1, 12 do
+            local line = Drawing.new("Line")
+            line.Thickness = self.Config.WireframeThickness
+            line.Color = self.Config.WireframeColor
+            line.Visible = false
+            line.Transparency = 1
+            wireframeData.Lines[partName][i] = line
         end
     end
     
@@ -523,12 +500,9 @@ end
 function espModule:ClearWireframe(targetPlayer)
     local cache = self.Caches.WireframeCache[targetPlayer]
     if cache then
-        for _, box in pairs(cache.Boxes) do
-            pcall(function() box:Destroy() end)
-        end
-        for _, guiTable in pairs(cache.SurfaceGuis) do
-            for _, gui in ipairs(guiTable) do
-                pcall(function() gui:Destroy() end)
+        for partName, lines in pairs(cache.Lines) do
+            for _, line in ipairs(lines) do
+                pcall(function() line:Remove() end)
             end
         end
         self.Caches.WireframeCache[targetPlayer] = nil
@@ -612,6 +586,17 @@ function espModule:HideTracer(targetPlayer)
     local cache = self.Caches.TracerCache[targetPlayer]
     if cache then
         cache.Line.Visible = false
+    end
+end
+
+function espModule:HideWireframe(targetPlayer)
+    local cache = self.Caches.WireframeCache[targetPlayer]
+    if cache then
+        for partName, lines in pairs(cache.Lines) do
+            for _, line in ipairs(lines) do
+                line.Visible = false
+            end
+        end
     end
 end
 
@@ -1141,34 +1126,52 @@ function espModule:UpdateWireframe()
             
             if not self.Caches.WireframeCache[otherPlayer] then
                 self.Caches.WireframeCache[otherPlayer] = self:CreateWireframe(otherPlayer)
-            else
-                local wireframeData = self.Caches.WireframeCache[otherPlayer]
+            end
+            
+            local wireframeData = self.Caches.WireframeCache[otherPlayer]
+            
+            for _, partName in ipairs(BODY_PARTS) do
+                local part = otherCharacter:FindFirstChild(partName)
+                local lines = wireframeData.Lines[partName]
                 
-                if wireframeData.Character ~= otherCharacter then
-                    self:ClearWireframe(otherPlayer)
-                    self.Caches.WireframeCache[otherPlayer] = self:CreateWireframe(otherPlayer)
-                else
-                    for partName, box in pairs(wireframeData.Boxes) do
-                        if box and box.Parent then
-                            box.Color3 = self.Config.WireframeColor
-                            box.Transparency = self.Config.WireframeTransparency
+                if part and part:IsA("BasePart") and lines then
+                    local corners = getBoxCorners(part)
+                    local screenCorners = {}
+                    local allOnScreen = true
+                    
+                    for i, corner in ipairs(corners) do
+                        local screenPos, onScreen, depth = worldToScreen(corner.Position)
+                        screenCorners[i] = {pos = screenPos, onScreen = onScreen, depth = depth}
+                        if depth < 0 then
+                            allOnScreen = false
                         end
                     end
                     
-                    for partName, guiTable in pairs(wireframeData.SurfaceGuis) do
-                        for _, gui in ipairs(guiTable) do
-                            if gui and gui.Parent then
-                                local frame = gui:FindFirstChild("WireframeFrame")
-                                if frame then
-                                    frame.BackgroundColor3 = self.Config.WireframeSurfaceColor
-                                    frame.BackgroundTransparency = self.Config.WireframeSurfaceTransparency
-                                    local stroke = frame:FindFirstChildOfClass("UIStroke")
-                                    if stroke then
-                                        stroke.Color = self.Config.WireframeColor
-                                        stroke.Transparency = self.Config.WireframeTransparency
-                                    end
-                                end
+                    if allOnScreen then
+                        for i, edge in ipairs(CUBE_EDGES) do
+                            local line = lines[i]
+                            local corner1 = screenCorners[edge[1]]
+                            local corner2 = screenCorners[edge[2]]
+                            
+                            if corner1.onScreen and corner2.onScreen then
+                                line.From = corner1.pos
+                                line.To = corner2.pos
+                                line.Color = self.Config.WireframeColor
+                                line.Thickness = self.Config.WireframeThickness
+                                line.Visible = true
+                            else
+                                line.Visible = false
                             end
+                        end
+                    else
+                        for i = 1, 12 do
+                            lines[i].Visible = false
+                        end
+                    end
+                else
+                    if lines then
+                        for i = 1, 12 do
+                            lines[i].Visible = false
                         end
                     end
                 end
@@ -1367,7 +1370,6 @@ end
 
 function espModule:InitiateWireframe(color)
     self.Config.WireframeColor = color or self.Config.WireframeColor
-    self.Config.WireframeSurfaceColor = color or self.Config.WireframeSurfaceColor
     self.State.WireframeEnabled = true
 end
 

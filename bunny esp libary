@@ -10,63 +10,130 @@ espModule.__index = espModule
 espModule.Config = {
     TeamCheck = true,
     ESPDistance = 1000,
+    VisibilityCheck = false,
+    
+    BoxEnabled = false,
     BoxColor = Color3.new(0.403922, 0.34902, 0.701961),
-    BoxGradientEnabled = false,
-    BoxGradientColor1 = Color3.new(0.403922, 0.34902, 0.701961),
-    BoxGradientColor2 = Color3.new(0.8, 0.4, 1),
-    BoxFillTransparency = 0.5,
-    RotateSpeed = 120,
+    BoxStyle = "Full",
+    BoxThickness = 1,
     BoxOutlineEnabled = true,
     BoxOutlineColor = Color3.new(0, 0, 0),
-    SkeletonColor = Color3.new(0.403922, 0.34902, 0.701961),
-    ChamsColor = Color3.new(0.403922, 0.34902, 0.701961),
-    ChamsFillTransparency = 0.5,
-    ChamsOutlineColor = Color3.new(1, 1, 1),
-    WireframeColor = Color3.new(0.403922, 0.34902, 0.701961),
-    WireframeThickness = 1,
-    TracerOrigin = "Bottom Screen",
-    TracerColor = Color3.new(0.403922, 0.34902, 0.701961),
-    HealthBarLerpSpeed = 0.15,
-    PositionLerpSpeed = 0.3,
-    ColorLerpSpeed = 0.1,
+    BoxFilled = false,
+    BoxFillTransparency = 0.8,
+    BoxRainbow = false,
+    
+    CornerLength = 0.25,
+    
+    Box3DEnabled = false,
+    Box3DColor = Color3.new(0.403922, 0.34902, 0.701961),
+    Box3DThickness = 1,
+    
+    NameEnabled = false,
+    NameColor = Color3.new(1, 1, 1),
+    NameSize = 14,
+    NameFont = 2,
+    ShowDisplayName = false,
+    
+    DistanceEnabled = false,
+    DistanceColor = Color3.fromRGB(200, 200, 200),
+    DistanceSize = 13,
+    
+    HealthBarEnabled = false,
+    HealthBarPosition = "Left",
+    HealthBarWidth = 2,
+    HealthBarOutline = true,
     HealthColorFull = Color3.fromRGB(0, 255, 0),
     HealthColorMid = Color3.fromRGB(255, 255, 0),
     HealthColorLow = Color3.fromRGB(255, 0, 0),
-    ArmorBarColor = Color3.fromRGB(0, 150, 255),
-    RingColor = Color3.fromRGB(255, 255, 255),
-    ScanSpeed = 2.5,
-    ScanHeight = 3.5,
-    RingRadius = 2.5
-}
-
-espModule.State = {
-    BoxEnabled = false,
-    NameEnabled = false,
-    DistanceEnabled = false,
-    SkeletonEnabled = false,
+    
     HealthTextEnabled = false,
-    HealthBarEnabled = false,
+    HealthTextColor = Color3.new(1, 1, 1),
+    HealthTextSize = 12,
+    
     ArmorBarEnabled = false,
+    ArmorBarPosition = "Right",
+    ArmorBarColor = Color3.fromRGB(0, 150, 255),
+    ArmorBarWidth = 2,
+    
+    SkeletonEnabled = false,
+    SkeletonColor = Color3.new(0.403922, 0.34902, 0.701961),
+    SkeletonThickness = 2,
+    
     TracerEnabled = false,
+    TracerColor = Color3.new(0.403922, 0.34902, 0.701961),
+    TracerOrigin = "Bottom",
+    TracerThickness = 1.5,
+    TracerOutline = false,
+    TracerOutlineColor = Color3.new(0, 0, 0),
+    
+    HeadDotEnabled = false,
+    HeadDotColor = Color3.new(1, 0, 0),
+    HeadDotSize = 4,
+    HeadDotFilled = true,
+    HeadDotOutline = true,
+    HeadDotOutlineColor = Color3.new(0, 0, 0),
+    
     ChamsEnabled = false,
+    ChamsColor = Color3.new(0.403922, 0.34902, 0.701961),
+    ChamsFillTransparency = 0.5,
+    ChamsOutlineColor = Color3.new(1, 1, 1),
+    ChamsOutlineTransparency = 0,
+    
     WireframeEnabled = false,
-    RingEnabled = false
+    WireframeColor = Color3.new(0.403922, 0.34902, 0.701961),
+    WireframeThickness = 1,
+    WireframeCrossEnabled = true,
+    
+    RingEnabled = false,
+    RingColor = Color3.fromRGB(255, 255, 255),
+    RingScanSpeed = 2.5,
+    RingScanHeight = 3.5,
+    RingRadius = 2.5,
+    
+    WeaponEnabled = false,
+    WeaponColor = Color3.fromRGB(255, 200, 100),
+    WeaponSize = 12,
+    
+    FlagsEnabled = false,
+    FlagSize = 12,
+    FlagColor = Color3.new(1, 1, 1),
+    
+    LookDirectionEnabled = false,
+    LookDirectionColor = Color3.new(1, 0, 0),
+    LookDirectionLength = 100,
+    LookDirectionThickness = 1,
+    
+    OffscreenArrowsEnabled = false,
+    OffscreenArrowColor = Color3.new(1, 0, 0),
+    OffscreenArrowSize = 15,
+    OffscreenArrowRadius = 200,
+    
+    PositionLerpSpeed = 0.25,
+    HealthLerpSpeed = 0.15,
+    ColorLerpSpeed = 0.1,
+    
+    RainbowSpeed = 1,
+    
+    MaxRenderDistance = 500
 }
 
 espModule.Caches = {
     BoxCache = {},
+    Box3DCache = {},
     SkeletonCache = {},
     TracerCache = {},
+    HeadDotCache = {},
     ChamsCache = {},
     WireframeCache = {},
-    RingCache = {}
+    RingCache = {},
+    LookDirectionCache = {},
+    OffscreenCache = {}
 }
 
 local localPlayer = playersService.LocalPlayer
 local currentCamera = workspaceService.CurrentCamera
-local heartbeatConnection = nil
 local renderConnection = nil
-local currentRotation = 0
+local rainbowHue = 0
 
 local BODY_PARTS = {
     "Head", "Torso", "UpperTorso", "LowerTorso",
@@ -79,7 +146,10 @@ local BODY_PARTS = {
 local CUBE_EDGES = {
     {1, 2}, {2, 3}, {3, 4}, {4, 1},
     {5, 6}, {6, 7}, {7, 8}, {8, 5},
-    {1, 5}, {2, 6}, {3, 7}, {4, 8},
+    {1, 5}, {2, 6}, {3, 7}, {4, 8}
+}
+
+local CUBE_CROSS = {
     {1, 3}, {2, 4},
     {5, 7}, {6, 8},
     {1, 6}, {2, 5},
@@ -88,92 +158,89 @@ local CUBE_EDGES = {
     {2, 7}, {3, 6}
 }
 
-local TOTAL_LINES = #CUBE_EDGES
-
 local function safeCall(callback)
     local success, errorMessage = pcall(callback)
     if not success then
-        warn("MatchaEsp Error: " .. tostring(errorMessage))
+        warn("ESP Error: " .. tostring(errorMessage))
     end
 end
 
-local function lerpNumber(a, b, t)
+local function lerp(a, b, t)
     return a + (b - a) * math.clamp(t, 0, 1)
 end
 
 local function lerpVector2(a, b, t)
-    return Vector2.new(
-        lerpNumber(a.X, b.X, t),
-        lerpNumber(a.Y, b.Y, t)
-    )
+    return Vector2.new(lerp(a.X, b.X, t), lerp(a.Y, b.Y, t))
 end
 
 local function lerpColor3(a, b, t)
-    return Color3.new(
-        lerpNumber(a.R, b.R, t),
-        lerpNumber(a.G, b.G, t),
-        lerpNumber(a.B, b.B, t)
-    )
+    return Color3.new(lerp(a.R, b.R, t), lerp(a.G, b.G, t), lerp(a.B, b.B, t))
+end
+
+local function getRainbowColor(offset)
+    offset = offset or 0
+    local hue = (rainbowHue + offset) % 1
+    return Color3.fromHSV(hue, 1, 1)
 end
 
 local function getHealthColor(healthPercent, config)
     if healthPercent > 50 then
-        return config.HealthColorFull
-    elseif healthPercent > 25 then
-        local t = (healthPercent - 25) / 25
+        local t = (healthPercent - 50) / 50
         return lerpColor3(config.HealthColorMid, config.HealthColorFull, t)
     else
-        local t = healthPercent / 25
+        local t = healthPercent / 50
         return lerpColor3(config.HealthColorLow, config.HealthColorMid, t)
     end
 end
 
-local function getCameraDistance(worldPosition)
-    return (currentCamera.CFrame.Position - worldPosition).Magnitude
+local function getCameraDistance(position)
+    return (currentCamera.CFrame.Position - position).Magnitude
 end
 
-local function isAnyBoxFeatureEnabled(self)
-    return self.State.BoxEnabled or 
-           self.State.NameEnabled or 
-           self.State.DistanceEnabled or 
-           self.State.HealthTextEnabled or 
-           self.State.HealthBarEnabled or 
-           self.State.ArmorBarEnabled
+local function worldToScreen(position)
+    local screenPos, onScreen = currentCamera:WorldToViewportPoint(position)
+    return Vector2.new(screenPos.X, screenPos.Y), onScreen, screenPos.Z
 end
 
-local function isAnyESPEnabled(self)
-    return isAnyBoxFeatureEnabled(self) or
-           self.State.SkeletonEnabled or
-           self.State.TracerEnabled or
-           self.State.ChamsEnabled or
-           self.State.WireframeEnabled or
-           self.State.RingEnabled
-end
-
-local function isTeammate(self, otherPlayer)
+local function isTeammate(self, player)
     if not self.Config.TeamCheck then return false end
     if not localPlayer.Team then return false end
-    if not otherPlayer.Team then return false end
-    return otherPlayer.Team == localPlayer.Team
+    if not player.Team then return false end
+    return player.Team == localPlayer.Team
 end
 
-local function isValidTarget(self, otherPlayer)
-    if otherPlayer == localPlayer then return false end
+local function isVisible(origin, target)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {localPlayer.Character, target.Parent}
     
-    local otherCharacter = otherPlayer.Character
-    if not otherCharacter then return false end
+    local result = workspaceService:Raycast(origin, (target.Position - origin), params)
+    return result == nil
+end
+
+local function isValidTarget(self, player)
+    if player == localPlayer then return false end
     
-    local otherRoot = otherCharacter:FindFirstChild("HumanoidRootPart")
-    if not otherRoot then return false end
+    local character = player.Character
+    if not character then return false end
     
-    local otherHumanoid = otherCharacter:FindFirstChild("Humanoid")
-    if not otherHumanoid then return false end
-    if otherHumanoid.Health <= 0 then return false end
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return false end
     
-    local distance = getCameraDistance(otherRoot.Position)
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid or humanoid.Health <= 0 then return false end
+    
+    local distance = getCameraDistance(root.Position)
     if distance > self.Config.ESPDistance then return false end
     
-    if isTeammate(self, otherPlayer) then return false end
+    if isTeammate(self, player) then return false end
+    
+    if self.Config.VisibilityCheck then
+        local head = character:FindFirstChild("Head")
+        if head and not isVisible(currentCamera.CFrame.Position, head) then
+            return false
+        end
+    end
     
     return true
 end
@@ -183,7 +250,7 @@ local function getBoxCorners(part)
     local size = part.Size
     local sx, sy, sz = size.X / 2, size.Y / 2, size.Z / 2
     
-    local corners = {
+    return {
         cf * CFrame.new(-sx, -sy, -sz),
         cf * CFrame.new(sx, -sy, -sz),
         cf * CFrame.new(sx, -sy, sz),
@@ -193,1301 +260,1386 @@ local function getBoxCorners(part)
         cf * CFrame.new(sx, sy, sz),
         cf * CFrame.new(-sx, sy, sz)
     }
+end
+
+local function getCharacterCorners(character)
+    local root = character:FindFirstChild("HumanoidRootPart")
+    local head = character:FindFirstChild("Head")
+    if not root then return nil end
     
-    return corners
+    local cf = root.CFrame
+    local headOffset = head and (head.Position.Y - root.Position.Y + 0.5) or 2
+    local footOffset = 3
+    
+    local sx, sz = 2, 1.5
+    
+    return {
+        cf * CFrame.new(-sx, -footOffset, -sz),
+        cf * CFrame.new(sx, -footOffset, -sz),
+        cf * CFrame.new(sx, -footOffset, sz),
+        cf * CFrame.new(-sx, -footOffset, sz),
+        cf * CFrame.new(-sx, headOffset, -sz),
+        cf * CFrame.new(sx, headOffset, -sz),
+        cf * CFrame.new(sx, headOffset, sz),
+        cf * CFrame.new(-sx, headOffset, sz)
+    }
 end
 
-local function worldToScreen(position)
-    local screenPos, onScreen = currentCamera:WorldToViewportPoint(position)
-    return Vector2.new(screenPos.X, screenPos.Y), onScreen, screenPos.Z
+local function getEquippedWeapon(character)
+    local tool = character:FindFirstChildOfClass("Tool")
+    if tool then
+        local cleanName = tool.Name:gsub("%[.-%]", ""):gsub("^%s*(.-)%s*$", "%1")
+        return cleanName ~= "" and cleanName or tool.Name
+    end
+    return nil
 end
 
-function espModule:CreateBox(_)
-    local boxDrawings = {
-        Box = Drawing.new("Square"),
-        BoxOutline = Drawing.new("Square"),
-        Name = Drawing.new("Text"),
-        Distance = Drawing.new("Text"),
-        HealthText = Drawing.new("Text"),
-        HealthBarBackground = Drawing.new("Square"),
-        HealthBar = Drawing.new("Square"),
-        HealthBarOutline = Drawing.new("Square"),
-        ArmorText = Drawing.new("Text"),
-        ArmorBarBackground = Drawing.new("Square"),
-        ArmorBar = Drawing.new("Square"),
-        ArmorBarOutline = Drawing.new("Square"),
-        FillFrame = Instance.new("Frame"),
-        Gradient = Instance.new("UIGradient"),
-        Stroke = Instance.new("UIStroke"),
-        CurrentHealth = 100,
-        TargetHealth = 100,
-        CurrentArmor = 0,
-        TargetArmor = 0,
-        CurrentHealthColor = self.Config.HealthColorFull,
-        TargetHealthColor = self.Config.HealthColorFull,
-        CurrentPosition = Vector2.new(0, 0),
-        TargetPosition = Vector2.new(0, 0),
+local function createDrawing(type, properties)
+    local drawing = Drawing.new(type)
+    for prop, value in pairs(properties or {}) do
+        drawing[prop] = value
+    end
+    return drawing
+end
+
+function espModule:CreateBoxCache(player)
+    local cache = {
+        Box = createDrawing("Square", {Thickness = 1, Filled = false, Visible = false}),
+        BoxOutline = createDrawing("Square", {Thickness = 3, Filled = false, Visible = false}),
+        BoxFill = createDrawing("Square", {Filled = true, Visible = false}),
+        
+        TopLeft = createDrawing("Line", {Visible = false}),
+        TopRight = createDrawing("Line", {Visible = false}),
+        BottomLeft = createDrawing("Line", {Visible = false}),
+        BottomRight = createDrawing("Line", {Visible = false}),
+        TopLeftV = createDrawing("Line", {Visible = false}),
+        TopRightV = createDrawing("Line", {Visible = false}),
+        BottomLeftV = createDrawing("Line", {Visible = false}),
+        BottomRightV = createDrawing("Line", {Visible = false}),
+        
+        TopLeftO = createDrawing("Line", {Visible = false, Color = Color3.new(0, 0, 0)}),
+        TopRightO = createDrawing("Line", {Visible = false, Color = Color3.new(0, 0, 0)}),
+        BottomLeftO = createDrawing("Line", {Visible = false, Color = Color3.new(0, 0, 0)}),
+        BottomRightO = createDrawing("Line", {Visible = false, Color = Color3.new(0, 0, 0)}),
+        TopLeftVO = createDrawing("Line", {Visible = false, Color = Color3.new(0, 0, 0)}),
+        TopRightVO = createDrawing("Line", {Visible = false, Color = Color3.new(0, 0, 0)}),
+        BottomLeftVO = createDrawing("Line", {Visible = false, Color = Color3.new(0, 0, 0)}),
+        BottomRightVO = createDrawing("Line", {Visible = false, Color = Color3.new(0, 0, 0)}),
+        
+        Name = createDrawing("Text", {Center = true, Outline = true, Font = 2, Visible = false}),
+        Distance = createDrawing("Text", {Center = true, Outline = true, Font = 2, Visible = false}),
+        Weapon = createDrawing("Text", {Center = true, Outline = true, Font = 2, Visible = false}),
+        Flags = createDrawing("Text", {Outline = true, Font = 2, Visible = false}),
+        
+        HealthBarBg = createDrawing("Square", {Filled = true, Visible = false, Color = Color3.fromRGB(30, 30, 30)}),
+        HealthBar = createDrawing("Square", {Filled = true, Visible = false}),
+        HealthBarOutline = createDrawing("Square", {Filled = false, Visible = false, Color = Color3.new(0, 0, 0)}),
+        HealthText = createDrawing("Text", {Outline = true, Font = 2, Visible = false}),
+        
+        ArmorBarBg = createDrawing("Square", {Filled = true, Visible = false, Color = Color3.fromRGB(30, 30, 30)}),
+        ArmorBar = createDrawing("Square", {Filled = true, Visible = false}),
+        ArmorBarOutline = createDrawing("Square", {Filled = false, Visible = false, Color = Color3.new(0, 0, 0)}),
+        
+        CurrentPos = Vector2.new(0, 0),
         CurrentSize = Vector2.new(0, 0),
-        TargetSize = Vector2.new(0, 0),
+        CurrentHealth = 100,
+        CurrentArmor = 0,
+        CurrentHealthColor = self.Config.HealthColorFull,
         Initialized = false
     }
-    
-    boxDrawings.FillFrame.Parent = self.EspGui
-    boxDrawings.FillFrame.BorderSizePixel = 0
-    boxDrawings.FillFrame.BackgroundTransparency = 1
-    boxDrawings.FillFrame.Visible = false
-    boxDrawings.Gradient.Parent = boxDrawings.FillFrame
-    boxDrawings.Gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, self.Config.BoxGradientColor1),
-        ColorSequenceKeypoint.new(0.5, self.Config.BoxGradientColor2),
-        ColorSequenceKeypoint.new(1, self.Config.BoxGradientColor1)
-    })
-    boxDrawings.Stroke.Parent = boxDrawings.FillFrame
-    boxDrawings.Stroke.Thickness = 1.2
-    boxDrawings.Stroke.Color = self.Config.BoxOutlineColor
-    boxDrawings.Stroke.Transparency = 0
-    boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
-    
-    boxDrawings.Box.Thickness = 1
-    boxDrawings.Box.Color = self.Config.BoxColor
-    boxDrawings.Box.Filled = false
-    boxDrawings.Box.Visible = false
-    boxDrawings.Box.Transparency = 1
-    
-    boxDrawings.BoxOutline.Thickness = 3
-    boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
-    boxDrawings.BoxOutline.Filled = false
-    boxDrawings.BoxOutline.Visible = false
-    boxDrawings.BoxOutline.Transparency = 1
-    
-    boxDrawings.Name.Size = 14
-    boxDrawings.Name.Color = Color3.new(1, 1, 1)
-    boxDrawings.Name.Outline = true
-    boxDrawings.Name.OutlineColor = Color3.new(0, 0, 0)
-    boxDrawings.Name.Center = true
-    boxDrawings.Name.Visible = false
-    boxDrawings.Name.Font = 2
-    boxDrawings.Name.Transparency = 1
-    
-    boxDrawings.Distance.Size = 13
-    boxDrawings.Distance.Color = Color3.fromRGB(200, 200, 200)
-    boxDrawings.Distance.Outline = true
-    boxDrawings.Distance.OutlineColor = Color3.new(0, 0, 0)
-    boxDrawings.Distance.Center = true
-    boxDrawings.Distance.Visible = false
-    boxDrawings.Distance.Font = 2
-    boxDrawings.Distance.Transparency = 1
-    
-    boxDrawings.HealthText.Size = 12
-    boxDrawings.HealthText.Color = Color3.new(1, 1, 1)
-    boxDrawings.HealthText.Outline = true
-    boxDrawings.HealthText.OutlineColor = Color3.new(0, 0, 0)
-    boxDrawings.HealthText.Center = false
-    boxDrawings.HealthText.Visible = false
-    boxDrawings.HealthText.Font = 2
-    boxDrawings.HealthText.Transparency = 1
-    
-    boxDrawings.HealthBarBackground.Thickness = 1
-    boxDrawings.HealthBarBackground.Color = Color3.fromRGB(30, 30, 30)
-    boxDrawings.HealthBarBackground.Filled = true
-    boxDrawings.HealthBarBackground.Visible = false
-    boxDrawings.HealthBarBackground.Transparency = 0.3
-    
-    boxDrawings.HealthBarOutline.Thickness = 1
-    boxDrawings.HealthBarOutline.Color = Color3.fromRGB(0, 0, 0)
-    boxDrawings.HealthBarOutline.Filled = false
-    boxDrawings.HealthBarOutline.Visible = false
-    boxDrawings.HealthBarOutline.Transparency = 1
-    
-    boxDrawings.HealthBar.Thickness = 1
-    boxDrawings.HealthBar.Color = self.Config.HealthColorFull
-    boxDrawings.HealthBar.Filled = true
-    boxDrawings.HealthBar.Visible = false
-    boxDrawings.HealthBar.Transparency = 1
-    
-    boxDrawings.ArmorText.Size = 12
-    boxDrawings.ArmorText.Color = self.Config.ArmorBarColor
-    boxDrawings.ArmorText.Outline = true
-    boxDrawings.ArmorText.OutlineColor = Color3.new(0, 0, 0)
-    boxDrawings.ArmorText.Center = false
-    boxDrawings.ArmorText.Visible = false
-    boxDrawings.ArmorText.Font = 2
-    boxDrawings.ArmorText.Transparency = 1
-    
-    boxDrawings.ArmorBarBackground.Thickness = 1
-    boxDrawings.ArmorBarBackground.Color = Color3.fromRGB(30, 30, 30)
-    boxDrawings.ArmorBarBackground.Filled = true
-    boxDrawings.ArmorBarBackground.Visible = false
-    boxDrawings.ArmorBarBackground.Transparency = 0.3
-    
-    boxDrawings.ArmorBarOutline.Thickness = 1
-    boxDrawings.ArmorBarOutline.Color = Color3.fromRGB(0, 0, 0)
-    boxDrawings.ArmorBarOutline.Filled = false
-    boxDrawings.ArmorBarOutline.Visible = false
-    boxDrawings.ArmorBarOutline.Transparency = 1
-    
-    boxDrawings.ArmorBar.Thickness = 1
-    boxDrawings.ArmorBar.Color = self.Config.ArmorBarColor
-    boxDrawings.ArmorBar.Filled = true
-    boxDrawings.ArmorBar.Visible = false
-    boxDrawings.ArmorBar.Transparency = 1
-    
-    return boxDrawings
+    return cache
 end
 
-function espModule:CreateSkeleton(targetPlayer)
-    local targetCharacter = targetPlayer.Character
-    local isR6 = targetCharacter and targetCharacter:FindFirstChild("Torso") and not targetCharacter:FindFirstChild("UpperTorso")
+function espModule:CreateBox3DCache(player)
+    local cache = {Lines = {}}
+    for i = 1, 12 do
+        cache.Lines[i] = createDrawing("Line", {Visible = false})
+    end
+    return cache
+end
+
+function espModule:CreateSkeletonCache(player)
+    local character = player.Character
+    local isR6 = character and character:FindFirstChild("Torso") and not character:FindFirstChild("UpperTorso")
     
-    local skeletonData = {
-        IsR6 = isR6,
-        Lines = {},
-        CurrentPositions = {},
-        TargetPositions = {}
-    }
+    local cache = {IsR6 = isR6, Lines = {}, CurrentPos = {}, Initialized = false}
     
-    if isR6 then
-        local lineNames = {"HeadToTorso", "TorsoToLeftArm", "TorsoToRightArm", "TorsoToLeftLeg", "TorsoToRightLeg"}
-        for _, name in ipairs(lineNames) do
-            local line = Drawing.new("Line")
-            line.Thickness = 2
-            line.Color = self.Config.SkeletonColor
-            line.Visible = false
-            line.Transparency = 1
-            skeletonData.Lines[name] = line
-            skeletonData.CurrentPositions[name .. "From"] = Vector2.new(0, 0)
-            skeletonData.CurrentPositions[name .. "To"] = Vector2.new(0, 0)
-            skeletonData.TargetPositions[name .. "From"] = Vector2.new(0, 0)
-            skeletonData.TargetPositions[name .. "To"] = Vector2.new(0, 0)
-        end
-    else
-        local lineNames = {
-            "HeadToUpperTorso", "UpperTorsoToLowerTorso",
-            "UpperTorsoToLeftUpperArm", "LeftUpperArmToLeftLowerArm", "LeftLowerArmToLeftHand",
-            "UpperTorsoToRightUpperArm", "RightUpperArmToRightLowerArm", "RightLowerArmToRightHand",
-            "LowerTorsoToLeftUpperLeg", "LeftUpperLegToLeftLowerLeg", "LeftLowerLegToLeftFoot",
-            "LowerTorsoToRightUpperLeg", "RightUpperLegToRightLowerLeg", "RightLowerLegToRightFoot"
-        }
-        for _, name in ipairs(lineNames) do
-            local line = Drawing.new("Line")
-            line.Thickness = 2
-            line.Color = self.Config.SkeletonColor
-            line.Visible = false
-            line.Transparency = 1
-            skeletonData.Lines[name] = line
-            skeletonData.CurrentPositions[name .. "From"] = Vector2.new(0, 0)
-            skeletonData.CurrentPositions[name .. "To"] = Vector2.new(0, 0)
-            skeletonData.TargetPositions[name .. "From"] = Vector2.new(0, 0)
-            skeletonData.TargetPositions[name .. "To"] = Vector2.new(0, 0)
-        end
+    local lineCount = isR6 and 5 or 14
+    for i = 1, lineCount do
+        cache.Lines[i] = createDrawing("Line", {Visible = false})
+        cache.CurrentPos[i] = {from = Vector2.new(0, 0), to = Vector2.new(0, 0)}
     end
     
-    skeletonData.Initialized = false
-    return skeletonData
+    return cache
 end
 
-function espModule:CreateTracer(_)
-    local tracerData = {
-        Line = Drawing.new("Line"),
+function espModule:CreateTracerCache(player)
+    return {
+        Line = createDrawing("Line", {Visible = false}),
+        Outline = createDrawing("Line", {Visible = false, Color = Color3.new(0, 0, 0)}),
         CurrentFrom = Vector2.new(0, 0),
         CurrentTo = Vector2.new(0, 0),
-        TargetFrom = Vector2.new(0, 0),
-        TargetTo = Vector2.new(0, 0),
         Initialized = false
     }
-    
-    tracerData.Line.Thickness = 1.5
-    tracerData.Line.Color = self.Config.TracerColor
-    tracerData.Line.Visible = false
-    tracerData.Line.Transparency = 1
-    
-    return tracerData
 end
 
-function espModule:CreateChams(targetPlayer)
+function espModule:CreateHeadDotCache(player)
+    return {
+        Dot = createDrawing("Circle", {Visible = false}),
+        Outline = createDrawing("Circle", {Visible = false, Filled = false}),
+        CurrentPos = Vector2.new(0, 0),
+        Initialized = false
+    }
+end
+
+function espModule:CreateChamsCache(player)
+    local character = player.Character
+    if not character then return nil end
+    
     local highlight = Instance.new("Highlight")
-    highlight.FillColor = self.Config.ChamsColor
-    highlight.OutlineColor = self.Config.ChamsOutlineColor
-    highlight.FillTransparency = self.Config.ChamsFillTransparency
-    highlight.OutlineTransparency = 0
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Parent = targetPlayer.Character
-    highlight.Adornee = targetPlayer.Character
+    highlight.Adornee = character
+    highlight.Parent = character
     return highlight
 end
 
-function espModule:CreateWireframe(targetPlayer)
-    local wireframeData = {
-        Parts = {},
-        Lines = {}
-    }
+function espModule:CreateWireframeCache(player)
+    local cache = {Lines = {}}
+    local totalLines = self.Config.WireframeCrossEnabled and 24 or 12
     
     for _, partName in ipairs(BODY_PARTS) do
-        wireframeData.Lines[partName] = {}
-        for i = 1, TOTAL_LINES do
-            local line = Drawing.new("Line")
-            line.Thickness = self.Config.WireframeThickness
-            line.Color = self.Config.WireframeColor
-            line.Visible = false
-            line.Transparency = 1
-            wireframeData.Lines[partName][i] = line
+        cache.Lines[partName] = {}
+        for i = 1, totalLines do
+            cache.Lines[partName][i] = createDrawing("Line", {Visible = false})
         end
     end
     
-    return wireframeData
+    return cache
 end
 
-function espModule:CreateRing(player)
+function espModule:CreateRingCache(player)
     if player == localPlayer then return nil end
+    
     local holder = Instance.new("Part")
-    holder.Name = "ESP_Holder_" .. player.Name
+    holder.Name = "ESP_Ring_" .. player.Name
     holder.Transparency = 1
     holder.CanCollide = false
     holder.Anchored = true
-    holder.Parent = workspace
+    holder.Parent = workspaceService
+    
     local ring = Instance.new("CylinderHandleAdornment")
     ring.Adornee = holder
     ring.AlwaysOnTop = true
     ring.ZIndex = 10
-    ring.Color3 = self.Config.RingColor
-    ring.InnerRadius = self.Config.RingRadius - 0.1
-    ring.Radius = self.Config.RingRadius
     ring.Height = 0.08
     ring.CFrame = CFrame.Angles(math.rad(90), 0, 0)
     ring.Parent = holder
     ring.Visible = false
+    
     return {Holder = holder, Ring = ring, Root = nil}
 end
 
-function espModule:ClearBox(targetPlayer)
-    local cache = self.Caches.BoxCache[targetPlayer]
-    if cache then
-        pcall(function() cache.Box:Remove() end)
-        pcall(function() cache.BoxOutline:Remove() end)
-        pcall(function() cache.Name:Remove() end)
-        pcall(function() cache.Distance:Remove() end)
-        pcall(function() cache.HealthText:Remove() end)
-        pcall(function() cache.HealthBarBackground:Remove() end)
-        pcall(function() cache.HealthBar:Remove() end)
-        pcall(function() cache.HealthBarOutline:Remove() end)
-        pcall(function() cache.ArmorText:Remove() end)
-        pcall(function() cache.ArmorBarBackground:Remove() end)
-        pcall(function() cache.ArmorBar:Remove() end)
-        pcall(function() cache.ArmorBarOutline:Remove() end)
-        pcall(function() cache.FillFrame:Destroy() end)
-        self.Caches.BoxCache[targetPlayer] = nil
-    end
+function espModule:CreateLookDirectionCache(player)
+    return {
+        Line = createDrawing("Line", {Visible = false}),
+        CurrentFrom = Vector2.new(0, 0),
+        CurrentTo = Vector2.new(0, 0),
+        Initialized = false
+    }
 end
 
-function espModule:ClearSkeleton(targetPlayer)
-    local cache = self.Caches.SkeletonCache[targetPlayer]
-    if cache then
-        for _, line in pairs(cache.Lines) do
+function espModule:CreateOffscreenCache(player)
+    return {
+        Arrow = createDrawing("Triangle", {Filled = true, Visible = false}),
+        Outline = createDrawing("Triangle", {Filled = false, Visible = false, Color = Color3.new(0, 0, 0)})
+    }
+end
+
+function espModule:ClearCache(cacheName, player)
+    local cache = self.Caches[cacheName][player]
+    if not cache then return end
+    
+    if cacheName == "BoxCache" then
+        for _, drawing in pairs(cache) do
+            if typeof(drawing) == "table" and drawing.Remove then
+                pcall(function() drawing:Remove() end)
+            end
+        end
+    elseif cacheName == "Box3DCache" then
+        for _, line in ipairs(cache.Lines) do
             pcall(function() line:Remove() end)
         end
-        self.Caches.SkeletonCache[targetPlayer] = nil
-    end
-end
-
-function espModule:ClearTracer(targetPlayer)
-    local cache = self.Caches.TracerCache[targetPlayer]
-    if cache then
+    elseif cacheName == "SkeletonCache" then
+        for _, line in ipairs(cache.Lines) do
+            pcall(function() line:Remove() end)
+        end
+    elseif cacheName == "TracerCache" then
         pcall(function() cache.Line:Remove() end)
-        self.Caches.TracerCache[targetPlayer] = nil
-    end
-end
-
-function espModule:ClearChams(targetPlayer)
-    local cache = self.Caches.ChamsCache[targetPlayer]
-    if cache then
+        pcall(function() cache.Outline:Remove() end)
+    elseif cacheName == "HeadDotCache" then
+        pcall(function() cache.Dot:Remove() end)
+        pcall(function() cache.Outline:Remove() end)
+    elseif cacheName == "ChamsCache" then
         pcall(function() cache:Destroy() end)
-        self.Caches.ChamsCache[targetPlayer] = nil
-    end
-end
-
-function espModule:ClearWireframe(targetPlayer)
-    local cache = self.Caches.WireframeCache[targetPlayer]
-    if cache then
-        for partName, lines in pairs(cache.Lines) do
+    elseif cacheName == "WireframeCache" then
+        for _, lines in pairs(cache.Lines) do
             for _, line in ipairs(lines) do
                 pcall(function() line:Remove() end)
             end
         end
-        self.Caches.WireframeCache[targetPlayer] = nil
-    end
-end
-
-function espModule:ClearRing(targetPlayer)
-    local cache = self.Caches.RingCache[targetPlayer]
-    if cache then
+    elseif cacheName == "RingCache" then
         pcall(function() cache.Holder:Destroy() end)
-        self.Caches.RingCache[targetPlayer] = nil
+    elseif cacheName == "LookDirectionCache" then
+        pcall(function() cache.Line:Remove() end)
+    elseif cacheName == "OffscreenCache" then
+        pcall(function() cache.Arrow:Remove() end)
+        pcall(function() cache.Outline:Remove() end)
+    end
+    
+    self.Caches[cacheName][player] = nil
+end
+
+function espModule:ClearAllCaches(cacheName)
+    for player, _ in pairs(self.Caches[cacheName]) do
+        self:ClearCache(cacheName, player)
     end
 end
 
-function espModule:ClearAllBoxes()
-    for player, _ in pairs(self.Caches.BoxCache) do
-        self:ClearBox(player)
-    end
-end
-
-function espModule:ClearAllSkeletons()
-    for player, _ in pairs(self.Caches.SkeletonCache) do
-        self:ClearSkeleton(player)
-    end
-end
-
-function espModule:ClearAllTracers()
-    for player, _ in pairs(self.Caches.TracerCache) do
-        self:ClearTracer(player)
-    end
-end
-
-function espModule:ClearAllChams()
-    for player, _ in pairs(self.Caches.ChamsCache) do
-        self:ClearChams(player)
-    end
-end
-
-function espModule:ClearAllWireframes()
-    for player, _ in pairs(self.Caches.WireframeCache) do
-        self:ClearWireframe(player)
-    end
-end
-
-function espModule:ClearAllRings()
-    for player, _ in pairs(self.Caches.RingCache) do
-        self:ClearRing(player)
-    end
-end
-
-function espModule:HideBox(targetPlayer)
-    local boxDrawings = self.Caches.BoxCache[targetPlayer]
-    if boxDrawings then
-        boxDrawings.Box.Visible = false
-        boxDrawings.BoxOutline.Visible = false
-        boxDrawings.FillFrame.Visible = false
-        boxDrawings.Name.Visible = false
-        boxDrawings.Distance.Visible = false
-        boxDrawings.HealthText.Visible = false
-        boxDrawings.HealthBar.Visible = false
-        boxDrawings.HealthBarBackground.Visible = false
-        boxDrawings.HealthBarOutline.Visible = false
-        boxDrawings.ArmorText.Visible = false
-        boxDrawings.ArmorBar.Visible = false
-        boxDrawings.ArmorBarBackground.Visible = false
-        boxDrawings.ArmorBarOutline.Visible = false
-        if boxDrawings.Stroke then boxDrawings.Stroke.Enabled = false end
-    end
-end
-
-function espModule:HideSkeleton(targetPlayer)
-    local cache = self.Caches.SkeletonCache[targetPlayer]
-    if cache then
-        for _, line in pairs(cache.Lines) do
-            line.Visible = false
+function espModule:HideBoxCache(player)
+    local cache = self.Caches.BoxCache[player]
+    if not cache then return end
+    
+    for key, drawing in pairs(cache) do
+        if typeof(drawing) == "table" and drawing.Visible ~= nil then
+            drawing.Visible = false
         end
-    end
-end
-
-function espModule:HideTracer(targetPlayer)
-    local cache = self.Caches.TracerCache[targetPlayer]
-    if cache then
-        cache.Line.Visible = false
-    end
-end
-
-function espModule:HideWireframe(targetPlayer)
-    local cache = self.Caches.WireframeCache[targetPlayer]
-    if cache then
-        for partName, lines in pairs(cache.Lines) do
-            for _, line in ipairs(lines) do
-                line.Visible = false
-            end
-        end
-    end
-end
-
-function espModule:HideRing(targetPlayer)
-    local cache = self.Caches.RingCache[targetPlayer]
-    if cache and cache.Ring then
-        cache.Ring.Visible = false
     end
 end
 
 function espModule:UpdateBox(dt)
-    if not self or not self.State or not self.Config or not self.Caches then return end
-    
-    local shouldDraw = isAnyBoxFeatureEnabled(self)
+    local shouldDraw = self.Config.BoxEnabled or self.Config.NameEnabled or 
+                       self.Config.DistanceEnabled or self.Config.HealthBarEnabled or 
+                       self.Config.HealthTextEnabled or self.Config.ArmorBarEnabled or
+                       self.Config.WeaponEnabled or self.Config.FlagsEnabled
     
     if not shouldDraw then
-        self:ClearAllBoxes()
+        self:ClearAllCaches("BoxCache")
         return
     end
     
-    if not localPlayer.Character then
-        self:ClearAllBoxes()
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        self:ClearAllCaches("BoxCache")
         return
     end
     
-    local localRoot = localPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not localRoot then
-        self:ClearAllBoxes()
-        return
-    end
-
-    local cameraPos = currentCamera.CFrame.Position
     local activePlayers = {}
     local posLerp = math.clamp(self.Config.PositionLerpSpeed * dt * 60, 0, 1)
+    local healthLerp = math.clamp(self.Config.HealthLerpSpeed * dt * 60, 0, 1)
     local colorLerp = math.clamp(self.Config.ColorLerpSpeed * dt * 60, 0, 1)
-    local healthLerp = math.clamp(self.Config.HealthBarLerpSpeed * dt * 60, 0, 1)
-
-    for _, otherPlayer in ipairs(playersService:GetPlayers()) do
-        if otherPlayer ~= localPlayer then
-            activePlayers[otherPlayer] = true
+    
+    for _, player in ipairs(playersService:GetPlayers()) do
+        if player ~= localPlayer then
+            activePlayers[player] = true
             
-            local success, err = pcall(function()
-                if not isValidTarget(self, otherPlayer) then
-                    self:ClearBox(otherPlayer)
+            local success = pcall(function()
+                if not isValidTarget(self, player) then
+                    self:ClearCache("BoxCache", player)
                     return
                 end
                 
-                local otherCharacter = otherPlayer.Character
-                local otherRoot = otherCharacter:FindFirstChild("HumanoidRootPart")
-                local otherHumanoid = otherCharacter:FindFirstChild("Humanoid")
-                local distance = getCameraDistance(otherRoot.Position)
+                local character = player.Character
+                local root = character:FindFirstChild("HumanoidRootPart")
+                local head = character:FindFirstChild("Head")
+                local humanoid = character:FindFirstChild("Humanoid")
+                local distance = getCameraDistance(root.Position)
                 
-                if not self.Caches.BoxCache[otherPlayer] then
-                    self.Caches.BoxCache[otherPlayer] = self:CreateBox(otherPlayer)
+                if not self.Caches.BoxCache[player] then
+                    self.Caches.BoxCache[player] = self:CreateBoxCache(player)
                 end
-
-                local boxDrawings = self.Caches.BoxCache[otherPlayer]
-                local rootScreenPos, rootOnScreen = currentCamera:WorldToViewportPoint(otherRoot.Position)
-
-                if not rootOnScreen then
-                    self:HideBox(otherPlayer)
+                
+                local cache = self.Caches.BoxCache[player]
+                local rootScreen, onScreen = worldToScreen(root.Position)
+                
+                if not onScreen then
+                    self:HideBoxCache(player)
                     return
                 end
                 
-                local headPart = otherCharacter:FindFirstChild("Head")
-                local headTopPos = (headPart and headPart.Position + Vector3.new(0, 0.8, 0)) or (otherRoot.Position + Vector3.new(0, 2.5, 0))
-                local feetPos = otherRoot.Position - Vector3.new(0, 3, 0)
-
-                local headTopScreenPos = currentCamera:WorldToViewportPoint(headTopPos)
-                local feetScreenPos = currentCamera:WorldToViewportPoint(feetPos)
-
-                local height = math.abs(headTopScreenPos.Y - feetScreenPos.Y)
-                local width = height * 0.55
+                local headTop = head and (head.Position + Vector3.new(0, 0.8, 0)) or (root.Position + Vector3.new(0, 2.5, 0))
+                local feet = root.Position - Vector3.new(0, 3, 0)
                 
-                local centerPos = Vector2.new(rootScreenPos.X, (headTopScreenPos.Y + feetScreenPos.Y) / 2)
-                local targetTopLeft = centerPos - Vector2.new(width / 2, height / 2)
+                local headScreen = worldToScreen(headTop)
+                local feetScreen = worldToScreen(feet)
+                
+                local height = math.abs(headScreen.Y - feetScreen.Y)
+                local width = height * 0.5
+                
+                local center = Vector2.new(rootScreen.X, (headScreen.Y + feetScreen.Y) / 2)
+                local targetPos = center - Vector2.new(width / 2, height / 2)
                 local targetSize = Vector2.new(width, height)
                 
-                if not boxDrawings.Initialized then
-                    boxDrawings.CurrentPosition = targetTopLeft
-                    boxDrawings.CurrentSize = targetSize
-                    boxDrawings.Initialized = true
+                if not cache.Initialized then
+                    cache.CurrentPos = targetPos
+                    cache.CurrentSize = targetSize
+                    cache.Initialized = true
                 else
-                    boxDrawings.CurrentPosition = lerpVector2(boxDrawings.CurrentPosition, targetTopLeft, posLerp)
-                    boxDrawings.CurrentSize = lerpVector2(boxDrawings.CurrentSize, targetSize, posLerp)
+                    cache.CurrentPos = lerpVector2(cache.CurrentPos, targetPos, posLerp)
+                    cache.CurrentSize = lerpVector2(cache.CurrentSize, targetSize, posLerp)
                 end
                 
-                local smoothTopLeft = boxDrawings.CurrentPosition
-                local smoothSize = boxDrawings.CurrentSize
-                local smoothWidth = smoothSize.X
-                local smoothHeight = smoothSize.Y
-                local smoothCenterX = smoothTopLeft.X + smoothWidth / 2
+                local pos = cache.CurrentPos
+                local size = cache.CurrentSize
+                local centerX = pos.X + size.X / 2
                 
-                local currentHealthVal = otherHumanoid.Health
-                local maxHealthVal = otherHumanoid.MaxHealth
-                local healthPercent = (currentHealthVal / maxHealthVal) * 100
+                local healthPercent = (humanoid.Health / humanoid.MaxHealth) * 100
+                cache.CurrentHealth = lerp(cache.CurrentHealth, healthPercent, healthLerp)
                 
-                boxDrawings.TargetHealth = healthPercent
-                boxDrawings.CurrentHealth = lerpNumber(boxDrawings.CurrentHealth, boxDrawings.TargetHealth, healthLerp)
+                local targetHealthColor = getHealthColor(cache.CurrentHealth, self.Config)
+                cache.CurrentHealthColor = lerpColor3(cache.CurrentHealthColor, targetHealthColor, colorLerp)
                 
-                local targetHealthColor = getHealthColor(boxDrawings.CurrentHealth, self.Config)
-                boxDrawings.CurrentHealthColor = lerpColor3(boxDrawings.CurrentHealthColor, targetHealthColor, colorLerp)
+                local bodyEffects = character:FindFirstChild("BodyEffects")
+                local armorVal = bodyEffects and bodyEffects:FindFirstChild("Armor") and bodyEffects.Armor.Value or 0
+                local armorPercent = math.clamp((armorVal / 200) * 100, 0, 100)
+                cache.CurrentArmor = lerp(cache.CurrentArmor, armorPercent, healthLerp)
                 
-                if self.State.BoxEnabled then
-                    boxDrawings.Box.Visible = false
-                    boxDrawings.BoxOutline.Visible = false
-                    boxDrawings.FillFrame.Visible = false
-
-                    if self.Config.BoxGradientEnabled then
-                        boxDrawings.FillFrame.Position = UDim2.fromOffset(smoothTopLeft.X, smoothTopLeft.Y)
-                        boxDrawings.FillFrame.Size = UDim2.fromOffset(smoothWidth, smoothHeight)
-                        boxDrawings.FillFrame.BackgroundTransparency = self.Config.BoxFillTransparency
-                        boxDrawings.FillFrame.Visible = true
-                        boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
-                        boxDrawings.Stroke.Color = self.Config.BoxOutlineColor
-                    else
+                local boxColor = self.Config.BoxRainbow and getRainbowColor() or self.Config.BoxColor
+                
+                if self.Config.BoxEnabled then
+                    if self.Config.BoxStyle == "Full" then
+                        cache.Box.Visible = true
+                        cache.Box.Position = pos
+                        cache.Box.Size = size
+                        cache.Box.Color = boxColor
+                        cache.Box.Thickness = self.Config.BoxThickness
+                        
                         if self.Config.BoxOutlineEnabled then
-                            boxDrawings.BoxOutline.Size = Vector2.new(smoothWidth, smoothHeight)
-                            boxDrawings.BoxOutline.Position = smoothTopLeft
-                            boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
-                            boxDrawings.BoxOutline.Visible = true
+                            cache.BoxOutline.Visible = true
+                            cache.BoxOutline.Position = pos
+                            cache.BoxOutline.Size = size
+                            cache.BoxOutline.Color = self.Config.BoxOutlineColor
+                            cache.BoxOutline.Thickness = self.Config.BoxThickness + 2
+                        else
+                            cache.BoxOutline.Visible = false
                         end
                         
-                        boxDrawings.Box.Size = Vector2.new(smoothWidth, smoothHeight)
-                        boxDrawings.Box.Position = smoothTopLeft
-                        boxDrawings.Box.Color = self.Config.BoxColor
-                        boxDrawings.Box.Visible = true
+                        if self.Config.BoxFilled then
+                            cache.BoxFill.Visible = true
+                            cache.BoxFill.Position = pos
+                            cache.BoxFill.Size = size
+                            cache.BoxFill.Color = boxColor
+                            cache.BoxFill.Transparency = self.Config.BoxFillTransparency
+                        else
+                            cache.BoxFill.Visible = false
+                        end
+                        
+                        for _, key in ipairs({"TopLeft", "TopRight", "BottomLeft", "BottomRight", "TopLeftV", "TopRightV", "BottomLeftV", "BottomRightV"}) do
+                            cache[key].Visible = false
+                            cache[key .. "O"].Visible = false
+                        end
+                        
+                    elseif self.Config.BoxStyle == "Corner" then
+                        cache.Box.Visible = false
+                        cache.BoxOutline.Visible = false
+                        cache.BoxFill.Visible = false
+                        
+                        local cornerLen = size.X * self.Config.CornerLength
+                        local cornerLenV = size.Y * self.Config.CornerLength
+                        local thickness = self.Config.BoxThickness
+                        
+                        cache.TopLeft.From = pos
+                        cache.TopLeft.To = pos + Vector2.new(cornerLen, 0)
+                        cache.TopLeft.Color = boxColor
+                        cache.TopLeft.Thickness = thickness
+                        cache.TopLeft.Visible = true
+                        
+                        cache.TopLeftV.From = pos
+                        cache.TopLeftV.To = pos + Vector2.new(0, cornerLenV)
+                        cache.TopLeftV.Color = boxColor
+                        cache.TopLeftV.Thickness = thickness
+                        cache.TopLeftV.Visible = true
+                        
+                        cache.TopRight.From = pos + Vector2.new(size.X, 0)
+                        cache.TopRight.To = pos + Vector2.new(size.X - cornerLen, 0)
+                        cache.TopRight.Color = boxColor
+                        cache.TopRight.Thickness = thickness
+                        cache.TopRight.Visible = true
+                        
+                        cache.TopRightV.From = pos + Vector2.new(size.X, 0)
+                        cache.TopRightV.To = pos + Vector2.new(size.X, cornerLenV)
+                        cache.TopRightV.Color = boxColor
+                        cache.TopRightV.Thickness = thickness
+                        cache.TopRightV.Visible = true
+                        
+                        cache.BottomLeft.From = pos + Vector2.new(0, size.Y)
+                        cache.BottomLeft.To = pos + Vector2.new(cornerLen, size.Y)
+                        cache.BottomLeft.Color = boxColor
+                        cache.BottomLeft.Thickness = thickness
+                        cache.BottomLeft.Visible = true
+                        
+                        cache.BottomLeftV.From = pos + Vector2.new(0, size.Y)
+                        cache.BottomLeftV.To = pos + Vector2.new(0, size.Y - cornerLenV)
+                        cache.BottomLeftV.Color = boxColor
+                        cache.BottomLeftV.Thickness = thickness
+                        cache.BottomLeftV.Visible = true
+                        
+                        cache.BottomRight.From = pos + Vector2.new(size.X, size.Y)
+                        cache.BottomRight.To = pos + Vector2.new(size.X - cornerLen, size.Y)
+                        cache.BottomRight.Color = boxColor
+                        cache.BottomRight.Thickness = thickness
+                        cache.BottomRight.Visible = true
+                        
+                        cache.BottomRightV.From = pos + Vector2.new(size.X, size.Y)
+                        cache.BottomRightV.To = pos + Vector2.new(size.X, size.Y - cornerLenV)
+                        cache.BottomRightV.Color = boxColor
+                        cache.BottomRightV.Thickness = thickness
+                        cache.BottomRightV.Visible = true
+                        
+                        if self.Config.BoxOutlineEnabled then
+                            for _, key in ipairs({"TopLeft", "TopRight", "BottomLeft", "BottomRight", "TopLeftV", "TopRightV", "BottomLeftV", "BottomRightV"}) do
+                                cache[key .. "O"].From = cache[key].From
+                                cache[key .. "O"].To = cache[key].To
+                                cache[key .. "O"].Thickness = thickness + 2
+                                cache[key .. "O"].Visible = true
+                            end
+                        else
+                            for _, key in ipairs({"TopLeftO", "TopRightO", "BottomLeftO", "BottomRightO", "TopLeftVO", "TopRightVO", "BottomLeftVO", "BottomRightVO"}) do
+                                cache[key].Visible = false
+                            end
+                        end
                     end
                 else
-                    boxDrawings.Box.Visible = false
-                    boxDrawings.BoxOutline.Visible = false
-                    boxDrawings.FillFrame.Visible = false
-                    if boxDrawings.Stroke then boxDrawings.Stroke.Enabled = false end
+                    cache.Box.Visible = false
+                    cache.BoxOutline.Visible = false
+                    cache.BoxFill.Visible = false
+                    for _, key in ipairs({"TopLeft", "TopRight", "BottomLeft", "BottomRight", "TopLeftV", "TopRightV", "BottomLeftV", "BottomRightV"}) do
+                        cache[key].Visible = false
+                        cache[key .. "O"].Visible = false
+                    end
                 end
-
-                if self.State.NameEnabled then
-                    boxDrawings.Name.Position = Vector2.new(smoothCenterX, smoothTopLeft.Y - 18)
-                    boxDrawings.Name.Text = otherPlayer.Name
-                    boxDrawings.Name.Visible = true
+                
+                local textY = pos.Y - 2
+                
+                if self.Config.NameEnabled then
+                    textY = textY - self.Config.NameSize - 2
+                    cache.Name.Visible = true
+                    cache.Name.Position = Vector2.new(centerX, textY)
+                    cache.Name.Text = self.Config.ShowDisplayName and player.DisplayName or player.Name
+                    cache.Name.Color = self.Config.NameColor
+                    cache.Name.Size = self.Config.NameSize
                 else
-                    boxDrawings.Name.Visible = false
+                    cache.Name.Visible = false
                 end
-
-                if self.State.DistanceEnabled then
-                    boxDrawings.Distance.Position = Vector2.new(smoothCenterX, smoothTopLeft.Y + smoothHeight + 3)
-                    boxDrawings.Distance.Text = math.floor(distance) .. "m"
-                    boxDrawings.Distance.Visible = true
+                
+                local bottomY = pos.Y + size.Y + 2
+                
+                if self.Config.DistanceEnabled then
+                    cache.Distance.Visible = true
+                    cache.Distance.Position = Vector2.new(centerX, bottomY)
+                    cache.Distance.Text = math.floor(distance) .. "m"
+                    cache.Distance.Color = self.Config.DistanceColor
+                    cache.Distance.Size = self.Config.DistanceSize
+                    bottomY = bottomY + self.Config.DistanceSize + 2
                 else
-                    boxDrawings.Distance.Visible = false
+                    cache.Distance.Visible = false
                 end
-
-                local barX = smoothTopLeft.X - 6
-                local barY = smoothTopLeft.Y
-
-                if self.State.HealthBarEnabled or self.State.HealthTextEnabled then
-                    local displayHealth = math.floor(boxDrawings.CurrentHealth)
-                    
-                    if self.State.HealthTextEnabled then
-                        local textY = barY + smoothHeight * (1 - boxDrawings.CurrentHealth / 100)
-                        textY = math.clamp(textY, barY, barY + smoothHeight - 10)
-                        
-                        boxDrawings.HealthText.Position = Vector2.new(barX - 18, textY - 6)
-                        boxDrawings.HealthText.Text = tostring(displayHealth)
-                        boxDrawings.HealthText.Color = boxDrawings.CurrentHealthColor
-                        boxDrawings.HealthText.Visible = true
+                
+                if self.Config.WeaponEnabled then
+                    local weapon = getEquippedWeapon(character)
+                    if weapon then
+                        cache.Weapon.Visible = true
+                        cache.Weapon.Position = Vector2.new(centerX, bottomY)
+                        cache.Weapon.Text = weapon
+                        cache.Weapon.Color = self.Config.WeaponColor
+                        cache.Weapon.Size = self.Config.WeaponSize
+                        bottomY = bottomY + self.Config.WeaponSize + 2
                     else
-                        boxDrawings.HealthText.Visible = false
-                    end
-
-                    if self.State.HealthBarEnabled then
-                        local barHeight = smoothHeight * (boxDrawings.CurrentHealth / 100)
-                        
-                        boxDrawings.HealthBarOutline.Size = Vector2.new(4, smoothHeight + 2)
-                        boxDrawings.HealthBarOutline.Position = Vector2.new(barX - 1, barY - 1)
-                        boxDrawings.HealthBarOutline.Visible = true
-                        
-                        boxDrawings.HealthBarBackground.Size = Vector2.new(2, smoothHeight)
-                        boxDrawings.HealthBarBackground.Position = Vector2.new(barX, barY)
-                        boxDrawings.HealthBarBackground.Visible = true
-                        
-                        boxDrawings.HealthBar.Size = Vector2.new(2, barHeight)
-                        boxDrawings.HealthBar.Position = Vector2.new(barX, barY + smoothHeight - barHeight)
-                        boxDrawings.HealthBar.Color = boxDrawings.CurrentHealthColor
-                        boxDrawings.HealthBar.Visible = true
-                    else
-                        boxDrawings.HealthBar.Visible = false
-                        boxDrawings.HealthBarBackground.Visible = false
-                        boxDrawings.HealthBarOutline.Visible = false
+                        cache.Weapon.Visible = false
                     end
                 else
-                    boxDrawings.HealthText.Visible = false
-                    boxDrawings.HealthBar.Visible = false
-                    boxDrawings.HealthBarBackground.Visible = false
-                    boxDrawings.HealthBarOutline.Visible = false
+                    cache.Weapon.Visible = false
                 end
-
-                if self.State.ArmorBarEnabled then
-                    local bodyEffects = otherCharacter:FindFirstChild("BodyEffects")
-                    local armorVal = (bodyEffects and bodyEffects:FindFirstChild("Armor")) and bodyEffects.Armor.Value or 0
-                    local armorPercent = math.clamp((armorVal / 200) * 100, 0, 100)
+                
+                if self.Config.FlagsEnabled then
+                    local flags = {}
+                    if humanoid.Health < humanoid.MaxHealth * 0.3 then table.insert(flags, "LOW HP") end
+                    if armorVal > 0 then table.insert(flags, "ARMOR") end
+                    local weapon = getEquippedWeapon(character)
+                    if weapon then table.insert(flags, weapon) end
                     
-                    boxDrawings.TargetArmor = armorPercent
-                    boxDrawings.CurrentArmor = lerpNumber(boxDrawings.CurrentArmor, boxDrawings.TargetArmor, healthLerp)
-
-                    local armorBarX = smoothTopLeft.X + smoothWidth + 2
-                    local armorBarHeight = smoothHeight * (boxDrawings.CurrentArmor / 100)
-                    
-                    boxDrawings.ArmorBarOutline.Size = Vector2.new(4, smoothHeight + 2)
-                    boxDrawings.ArmorBarOutline.Position = Vector2.new(armorBarX - 1, barY - 1)
-                    boxDrawings.ArmorBarOutline.Visible = true
-                    
-                    boxDrawings.ArmorBarBackground.Size = Vector2.new(2, smoothHeight)
-                    boxDrawings.ArmorBarBackground.Position = Vector2.new(armorBarX, barY)
-                    boxDrawings.ArmorBarBackground.Visible = true
-                    
-                    boxDrawings.ArmorBar.Size = Vector2.new(2, armorBarHeight)
-                    boxDrawings.ArmorBar.Position = Vector2.new(armorBarX, barY + smoothHeight - armorBarHeight)
-                    boxDrawings.ArmorBar.Color = self.Config.ArmorBarColor
-                    boxDrawings.ArmorBar.Visible = boxDrawings.CurrentArmor > 0
-                    
-                    if self.State.HealthTextEnabled and boxDrawings.CurrentArmor > 0 then
-                        local armorTextY = barY + smoothHeight * (1 - boxDrawings.CurrentArmor / 100)
-                        armorTextY = math.clamp(armorTextY, barY, barY + smoothHeight - 10)
-                        
-                        boxDrawings.ArmorText.Position = Vector2.new(armorBarX + 6, armorTextY - 6)
-                        boxDrawings.ArmorText.Text = tostring(math.floor(boxDrawings.CurrentArmor))
-                        boxDrawings.ArmorText.Color = self.Config.ArmorBarColor
-                        boxDrawings.ArmorText.Visible = true
+                    if #flags > 0 then
+                        cache.Flags.Visible = true
+                        cache.Flags.Position = Vector2.new(pos.X + size.X + 4, pos.Y)
+                        cache.Flags.Text = table.concat(flags, "\n")
+                        cache.Flags.Color = self.Config.FlagColor
+                        cache.Flags.Size = self.Config.FlagSize
                     else
-                        boxDrawings.ArmorText.Visible = false
+                        cache.Flags.Visible = false
                     end
                 else
-                    boxDrawings.ArmorBar.Visible = false
-                    boxDrawings.ArmorBarBackground.Visible = false
-                    boxDrawings.ArmorBarOutline.Visible = false
-                    boxDrawings.ArmorText.Visible = false
+                    cache.Flags.Visible = false
+                end
+                
+                if self.Config.HealthBarEnabled then
+                    local barWidth = self.Config.HealthBarWidth
+                    local barHeight = size.Y * (cache.CurrentHealth / 100)
+                    local barX
+                    
+                    if self.Config.HealthBarPosition == "Left" then
+                        barX = pos.X - barWidth - 4
+                    else
+                        barX = pos.X + size.X + 2
+                    end
+                    
+                    cache.HealthBarBg.Visible = true
+                    cache.HealthBarBg.Position = Vector2.new(barX, pos.Y)
+                    cache.HealthBarBg.Size = Vector2.new(barWidth, size.Y)
+                    
+                    cache.HealthBar.Visible = true
+                    cache.HealthBar.Position = Vector2.new(barX, pos.Y + size.Y - barHeight)
+                    cache.HealthBar.Size = Vector2.new(barWidth, barHeight)
+                    cache.HealthBar.Color = cache.CurrentHealthColor
+                    
+                    if self.Config.HealthBarOutline then
+                        cache.HealthBarOutline.Visible = true
+                        cache.HealthBarOutline.Position = Vector2.new(barX - 1, pos.Y - 1)
+                        cache.HealthBarOutline.Size = Vector2.new(barWidth + 2, size.Y + 2)
+                    else
+                        cache.HealthBarOutline.Visible = false
+                    end
+                    
+                    if self.Config.HealthTextEnabled and cache.CurrentHealth < 100 then
+                        cache.HealthText.Visible = true
+                        cache.HealthText.Position = Vector2.new(barX - 15, pos.Y + size.Y - barHeight - 6)
+                        cache.HealthText.Text = tostring(math.floor(cache.CurrentHealth))
+                        cache.HealthText.Color = cache.CurrentHealthColor
+                        cache.HealthText.Size = self.Config.HealthTextSize
+                    else
+                        cache.HealthText.Visible = false
+                    end
+                else
+                    cache.HealthBarBg.Visible = false
+                    cache.HealthBar.Visible = false
+                    cache.HealthBarOutline.Visible = false
+                    cache.HealthText.Visible = false
+                end
+                
+                if self.Config.ArmorBarEnabled and cache.CurrentArmor > 0 then
+                    local barWidth = self.Config.ArmorBarWidth
+                    local barHeight = size.Y * (cache.CurrentArmor / 100)
+                    local barX
+                    
+                    if self.Config.ArmorBarPosition == "Right" then
+                        barX = pos.X + size.X + 2
+                        if self.Config.HealthBarEnabled and self.Config.HealthBarPosition == "Right" then
+                            barX = barX + self.Config.HealthBarWidth + 4
+                        end
+                    else
+                        barX = pos.X - barWidth - 4
+                        if self.Config.HealthBarEnabled and self.Config.HealthBarPosition == "Left" then
+                            barX = barX - self.Config.HealthBarWidth - 4
+                        end
+                    end
+                    
+                    cache.ArmorBarBg.Visible = true
+                    cache.ArmorBarBg.Position = Vector2.new(barX, pos.Y)
+                    cache.ArmorBarBg.Size = Vector2.new(barWidth, size.Y)
+                    
+                    cache.ArmorBar.Visible = true
+                    cache.ArmorBar.Position = Vector2.new(barX, pos.Y + size.Y - barHeight)
+                    cache.ArmorBar.Size = Vector2.new(barWidth, barHeight)
+                    cache.ArmorBar.Color = self.Config.ArmorBarColor
+                    
+                    cache.ArmorBarOutline.Visible = true
+                    cache.ArmorBarOutline.Position = Vector2.new(barX - 1, pos.Y - 1)
+                    cache.ArmorBarOutline.Size = Vector2.new(barWidth + 2, size.Y + 2)
+                else
+                    cache.ArmorBarBg.Visible = false
+                    cache.ArmorBar.Visible = false
+                    cache.ArmorBarOutline.Visible = false
                 end
             end)
             
             if not success then
-                self:ClearBox(otherPlayer)
+                self:ClearCache("BoxCache", player)
             end
         end
     end
     
     for player, _ in pairs(self.Caches.BoxCache) do
         if not activePlayers[player] then
-            self:ClearBox(player)
+            self:ClearCache("BoxCache", player)
+        end
+    end
+end
+
+function espModule:UpdateBox3D()
+    if not self.Config.Box3DEnabled then
+        self:ClearAllCaches("Box3DCache")
+        return
+    end
+    
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        self:ClearAllCaches("Box3DCache")
+        return
+    end
+    
+    local activePlayers = {}
+    
+    for _, player in ipairs(playersService:GetPlayers()) do
+        if player ~= localPlayer then
+            activePlayers[player] = true
+            
+            local success = pcall(function()
+                if not isValidTarget(self, player) then
+                    self:ClearCache("Box3DCache", player)
+                    return
+                end
+                
+                local character = player.Character
+                local corners = getCharacterCorners(character)
+                if not corners then
+                    self:ClearCache("Box3DCache", player)
+                    return
+                end
+                
+                if not self.Caches.Box3DCache[player] then
+                    self.Caches.Box3DCache[player] = self:CreateBox3DCache(player)
+                end
+                
+                local cache = self.Caches.Box3DCache[player]
+                local screenCorners = {}
+                local allVisible = true
+                
+                for i, corner in ipairs(corners) do
+                    local screen, onScreen, depth = worldToScreen(corner.Position)
+                    screenCorners[i] = {pos = screen, visible = onScreen and depth > 0}
+                    if depth < 0 then allVisible = false end
+                end
+                
+                if allVisible then
+                    for i, edge in ipairs(CUBE_EDGES) do
+                        local c1, c2 = screenCorners[edge[1]], screenCorners[edge[2]]
+                        local line = cache.Lines[i]
+                        
+                        if c1.visible and c2.visible then
+                            line.From = c1.pos
+                            line.To = c2.pos
+                            line.Color = self.Config.Box3DColor
+                            line.Thickness = self.Config.Box3DThickness
+                            line.Visible = true
+                        else
+                            line.Visible = false
+                        end
+                    end
+                else
+                    for i = 1, 12 do
+                        cache.Lines[i].Visible = false
+                    end
+                end
+            end)
+            
+            if not success then
+                self:ClearCache("Box3DCache", player)
+            end
+        end
+    end
+    
+    for player, _ in pairs(self.Caches.Box3DCache) do
+        if not activePlayers[player] then
+            self:ClearCache("Box3DCache", player)
         end
     end
 end
 
 function espModule:UpdateSkeleton(dt)
-    if not self.State.SkeletonEnabled then
-        self:ClearAllSkeletons()
+    if not self.Config.SkeletonEnabled then
+        self:ClearAllCaches("SkeletonCache")
         return
     end
     
-    if not (localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")) then
-        self:ClearAllSkeletons()
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        self:ClearAllCaches("SkeletonCache")
         return
     end
     
     local activePlayers = {}
     local posLerp = math.clamp(self.Config.PositionLerpSpeed * dt * 60, 0, 1)
     
-    for _, otherPlayer in ipairs(playersService:GetPlayers()) do
-        if otherPlayer ~= localPlayer then
-            activePlayers[otherPlayer] = true
+    local r6Connections = {
+        {"Head", "Torso"},
+        {"Torso", "Left Arm"},
+        {"Torso", "Right Arm"},
+        {"Torso", "Left Leg"},
+        {"Torso", "Right Leg"}
+    }
+    
+    local r15Connections = {
+        {"Head", "UpperTorso"},
+        {"UpperTorso", "LowerTorso"},
+        {"UpperTorso", "LeftUpperArm"},
+        {"LeftUpperArm", "LeftLowerArm"},
+        {"LeftLowerArm", "LeftHand"},
+        {"UpperTorso", "RightUpperArm"},
+        {"RightUpperArm", "RightLowerArm"},
+        {"RightLowerArm", "RightHand"},
+        {"LowerTorso", "LeftUpperLeg"},
+        {"LeftUpperLeg", "LeftLowerLeg"},
+        {"LeftLowerLeg", "LeftFoot"},
+        {"LowerTorso", "RightUpperLeg"},
+        {"RightUpperLeg", "RightLowerLeg"},
+        {"RightLowerLeg", "RightFoot"}
+    }
+    
+    for _, player in ipairs(playersService:GetPlayers()) do
+        if player ~= localPlayer then
+            activePlayers[player] = true
             
-            if not isValidTarget(self, otherPlayer) then
-                self:ClearSkeleton(otherPlayer)
-                continue
-            end
-            
-            local otherCharacter = otherPlayer.Character
-            
-            if not self.Caches.SkeletonCache[otherPlayer] then
-                self.Caches.SkeletonCache[otherPlayer] = self:CreateSkeleton(otherPlayer)
-            end
-            
-            local skeletonData = self.Caches.SkeletonCache[otherPlayer]
-            local isR6 = skeletonData.IsR6
-            
-            local function getScreenPos(partName)
-                local part = otherCharacter:FindFirstChild(partName)
-                if part then
-                    local screenPos, onScreen = currentCamera:WorldToViewportPoint(part.Position)
-                    return Vector2.new(screenPos.X, screenPos.Y), onScreen
-                end
-                return Vector2.new(0, 0), false
-            end
-            
-            local function updateLine(lineName, fromPos, toPos, fromOn, toOn)
-                local line = skeletonData.Lines[lineName]
-                if not line then return end
-                
-                local fromKey = lineName .. "From"
-                local toKey = lineName .. "To"
-                
-                skeletonData.TargetPositions[fromKey] = fromPos
-                skeletonData.TargetPositions[toKey] = toPos
-                
-                if not skeletonData.Initialized then
-                    skeletonData.CurrentPositions[fromKey] = fromPos
-                    skeletonData.CurrentPositions[toKey] = toPos
-                else
-                    skeletonData.CurrentPositions[fromKey] = lerpVector2(skeletonData.CurrentPositions[fromKey], fromPos, posLerp)
-                    skeletonData.CurrentPositions[toKey] = lerpVector2(skeletonData.CurrentPositions[toKey], toPos, posLerp)
+            local success = pcall(function()
+                if not isValidTarget(self, player) then
+                    self:ClearCache("SkeletonCache", player)
+                    return
                 end
                 
-                line.From = skeletonData.CurrentPositions[fromKey]
-                line.To = skeletonData.CurrentPositions[toKey]
-                line.Color = self.Config.SkeletonColor
-                line.Visible = fromOn and toOn
-            end
-            
-            local allOnScreen = true
-            
-            if isR6 then
-                local headPos, headOn = getScreenPos("Head")
-                local torsoPos, torsoOn = getScreenPos("Torso")
-                local leftArmPos, leftArmOn = getScreenPos("Left Arm")
-                local rightArmPos, rightArmOn = getScreenPos("Right Arm")
-                local leftLegPos, leftLegOn = getScreenPos("Left Leg")
-                local rightLegPos, rightLegOn = getScreenPos("Right Leg")
+                local character = player.Character
                 
-                allOnScreen = headOn and torsoOn
-                
-                if allOnScreen then
-                    updateLine("HeadToTorso", headPos, torsoPos, headOn, torsoOn)
-                    updateLine("TorsoToLeftArm", torsoPos, leftArmPos, torsoOn, leftArmOn)
-                    updateLine("TorsoToRightArm", torsoPos, rightArmPos, torsoOn, rightArmOn)
-                    updateLine("TorsoToLeftLeg", torsoPos, leftLegPos, torsoOn, leftLegOn)
-                    updateLine("TorsoToRightLeg", torsoPos, rightLegPos, torsoOn, rightLegOn)
-                else
-                    self:HideSkeleton(otherPlayer)
+                if not self.Caches.SkeletonCache[player] then
+                    self.Caches.SkeletonCache[player] = self:CreateSkeletonCache(player)
                 end
-            else
-                local headPos, headOn = getScreenPos("Head")
-                local upperTorsoPos, upperTorsoOn = getScreenPos("UpperTorso")
-                local lowerTorsoPos, lowerTorsoOn = getScreenPos("LowerTorso")
-                local leftUpperArmPos, leftUpperArmOn = getScreenPos("LeftUpperArm")
-                local leftLowerArmPos, leftLowerArmOn = getScreenPos("LeftLowerArm")
-                local leftHandPos, leftHandOn = getScreenPos("LeftHand")
-                local rightUpperArmPos, rightUpperArmOn = getScreenPos("RightUpperArm")
-                local rightLowerArmPos, rightLowerArmOn = getScreenPos("RightLowerArm")
-                local rightHandPos, rightHandOn = getScreenPos("RightHand")
-                local leftUpperLegPos, leftUpperLegOn = getScreenPos("LeftUpperLeg")
-                local leftLowerLegPos, leftLowerLegOn = getScreenPos("LeftLowerLeg")
-                local leftFootPos, leftFootOn = getScreenPos("LeftFoot")
-                local rightUpperLegPos, rightUpperLegOn = getScreenPos("RightUpperLeg")
-                local rightLowerLegPos, rightLowerLegOn = getScreenPos("RightLowerLeg")
-                local rightFootPos, rightFootOn = getScreenPos("RightFoot")
                 
-                allOnScreen = headOn and upperTorsoOn and lowerTorsoOn
+                local cache = self.Caches.SkeletonCache[player]
+                local connections = cache.IsR6 and r6Connections or r15Connections
                 
-                if allOnScreen then
-                    updateLine("HeadToUpperTorso", headPos, upperTorsoPos, headOn, upperTorsoOn)
-                    updateLine("UpperTorsoToLowerTorso", upperTorsoPos, lowerTorsoPos, upperTorsoOn, lowerTorsoOn)
-                    updateLine("UpperTorsoToLeftUpperArm", upperTorsoPos, leftUpperArmPos, upperTorsoOn, leftUpperArmOn)
-                    updateLine("LeftUpperArmToLeftLowerArm", leftUpperArmPos, leftLowerArmPos, leftUpperArmOn, leftLowerArmOn)
-                    updateLine("LeftLowerArmToLeftHand", leftLowerArmPos, leftHandPos, leftLowerArmOn, leftHandOn)
-                    updateLine("UpperTorsoToRightUpperArm", upperTorsoPos, rightUpperArmPos, upperTorsoOn, rightUpperArmOn)
-                    updateLine("RightUpperArmToRightLowerArm", rightUpperArmPos, rightLowerArmPos, rightUpperArmOn, rightLowerArmOn)
-                    updateLine("RightLowerArmToRightHand", rightLowerArmPos, rightHandPos, rightLowerArmOn, rightHandOn)
-                    updateLine("LowerTorsoToLeftUpperLeg", lowerTorsoPos, leftUpperLegPos, lowerTorsoOn, leftUpperLegOn)
-                    updateLine("LeftUpperLegToLeftLowerLeg", leftUpperLegPos, leftLowerLegPos, leftUpperLegOn, leftLowerLegOn)
-                    updateLine("LeftLowerLegToLeftFoot", leftLowerLegPos, leftFootPos, leftLowerLegOn, leftFootOn)
-                    updateLine("LowerTorsoToRightUpperLeg", lowerTorsoPos, rightUpperLegPos, lowerTorsoOn, rightUpperLegOn)
-                    updateLine("RightUpperLegToRightLowerLeg", rightUpperLegPos, rightLowerLegPos, rightUpperLegOn, rightLowerLegOn)
-                    updateLine("RightLowerLegToRightFoot", rightLowerLegPos, rightFootPos, rightLowerLegOn, rightFootOn)
-                else
-                    self:HideSkeleton(otherPlayer)
+                for i, conn in ipairs(connections) do
+                    local part1 = character:FindFirstChild(conn[1])
+                    local part2 = character:FindFirstChild(conn[2])
+                    
+                    if part1 and part2 then
+                        local screen1, on1 = worldToScreen(part1.Position)
+                        local screen2, on2 = worldToScreen(part2.Position)
+                        
+                        if on1 and on2 then
+                            if not cache.Initialized then
+                                cache.CurrentPos[i].from = screen1
+                                cache.CurrentPos[i].to = screen2
+                            else
+                                cache.CurrentPos[i].from = lerpVector2(cache.CurrentPos[i].from, screen1, posLerp)
+                                cache.CurrentPos[i].to = lerpVector2(cache.CurrentPos[i].to, screen2, posLerp)
+                            end
+                            
+                            cache.Lines[i].From = cache.CurrentPos[i].from
+                            cache.Lines[i].To = cache.CurrentPos[i].to
+                            cache.Lines[i].Color = self.Config.SkeletonColor
+                            cache.Lines[i].Thickness = self.Config.SkeletonThickness
+                            cache.Lines[i].Visible = true
+                        else
+                            cache.Lines[i].Visible = false
+                        end
+                    else
+                        cache.Lines[i].Visible = false
+                    end
                 end
-            end
+                
+                cache.Initialized = true
+            end)
             
-            skeletonData.Initialized = true
+            if not success then
+                self:ClearCache("SkeletonCache", player)
+            end
         end
     end
     
     for player, _ in pairs(self.Caches.SkeletonCache) do
         if not activePlayers[player] then
-            self:ClearSkeleton(player)
+            self:ClearCache("SkeletonCache", player)
         end
     end
 end
 
 function espModule:UpdateTracer(dt)
-    if not self.State.TracerEnabled then
-        self:ClearAllTracers()
+    if not self.Config.TracerEnabled then
+        self:ClearAllCaches("TracerCache")
         return
     end
     
-    if not (localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")) then
-        self:ClearAllTracers()
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        self:ClearAllCaches("TracerCache")
         return
     end
     
     local viewportSize = currentCamera.ViewportSize
-    local originPos
+    local origin
     
-    if self.Config.TracerOrigin == "Bottom Screen" then
-        originPos = Vector2.new(viewportSize.X / 2, viewportSize.Y)
-    elseif self.Config.TracerOrigin == "Cursor" then
-        originPos = userInputService:GetMouseLocation()
-    elseif self.Config.TracerOrigin == "Top Screen" then
-        originPos = Vector2.new(viewportSize.X / 2, 0)
+    if self.Config.TracerOrigin == "Bottom" then
+        origin = Vector2.new(viewportSize.X / 2, viewportSize.Y)
+    elseif self.Config.TracerOrigin == "Top" then
+        origin = Vector2.new(viewportSize.X / 2, 0)
+    elseif self.Config.TracerOrigin == "Center" then
+        origin = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+    elseif self.Config.TracerOrigin == "Mouse" then
+        origin = userInputService:GetMouseLocation()
     end
     
     local activePlayers = {}
     local posLerp = math.clamp(self.Config.PositionLerpSpeed * dt * 60, 0, 1)
     
-    for _, otherPlayer in ipairs(playersService:GetPlayers()) do
-        if otherPlayer ~= localPlayer then
-            activePlayers[otherPlayer] = true
+    for _, player in ipairs(playersService:GetPlayers()) do
+        if player ~= localPlayer then
+            activePlayers[player] = true
             
-            if not isValidTarget(self, otherPlayer) then
-                self:ClearTracer(otherPlayer)
-                continue
+            local success = pcall(function()
+                if not isValidTarget(self, player) then
+                    self:ClearCache("TracerCache", player)
+                    return
+                end
+                
+                local character = player.Character
+                local root = character:FindFirstChild("HumanoidRootPart")
+                
+                if not self.Caches.TracerCache[player] then
+                    self.Caches.TracerCache[player] = self:CreateTracerCache(player)
+                end
+                
+                local cache = self.Caches.TracerCache[player]
+                local targetScreen, onScreen = worldToScreen(root.Position)
+                
+                if not cache.Initialized then
+                    cache.CurrentFrom = origin
+                    cache.CurrentTo = targetScreen
+                    cache.Initialized = true
+                else
+                    cache.CurrentFrom = lerpVector2(cache.CurrentFrom, origin, posLerp)
+                    cache.CurrentTo = lerpVector2(cache.CurrentTo, targetScreen, posLerp)
+                end
+                
+                if self.Config.TracerOutline then
+                    cache.Outline.From = cache.CurrentFrom
+                    cache.Outline.To = cache.CurrentTo
+                    cache.Outline.Thickness = self.Config.TracerThickness + 2
+                    cache.Outline.Color = self.Config.TracerOutlineColor
+                    cache.Outline.Visible = onScreen
+                else
+                    cache.Outline.Visible = false
+                end
+                
+                cache.Line.From = cache.CurrentFrom
+                cache.Line.To = cache.CurrentTo
+                cache.Line.Color = self.Config.TracerColor
+                cache.Line.Thickness = self.Config.TracerThickness
+                cache.Line.Visible = onScreen
+            end)
+            
+            if not success then
+                self:ClearCache("TracerCache", player)
             end
-            
-            local otherCharacter = otherPlayer.Character
-            local tracerTarget = otherCharacter:FindFirstChild("HumanoidRootPart")
-            if not tracerTarget then
-                self:ClearTracer(otherPlayer)
-                continue
-            end
-            
-            if not self.Caches.TracerCache[otherPlayer] then
-                self.Caches.TracerCache[otherPlayer] = self:CreateTracer(otherPlayer)
-            end
-            
-            local tracerData = self.Caches.TracerCache[otherPlayer]
-            local targetScreenPos, targetOnScreen = currentCamera:WorldToViewportPoint(tracerTarget.Position)
-            local targetTo = Vector2.new(targetScreenPos.X, targetScreenPos.Y)
-            
-            tracerData.TargetFrom = originPos
-            tracerData.TargetTo = targetTo
-            
-            if not tracerData.Initialized then
-                tracerData.CurrentFrom = originPos
-                tracerData.CurrentTo = targetTo
-                tracerData.Initialized = true
-            else
-                tracerData.CurrentFrom = lerpVector2(tracerData.CurrentFrom, originPos, posLerp)
-                tracerData.CurrentTo = lerpVector2(tracerData.CurrentTo, targetTo, posLerp)
-            end
-            
-            tracerData.Line.From = tracerData.CurrentFrom
-            tracerData.Line.To = tracerData.CurrentTo
-            tracerData.Line.Color = self.Config.TracerColor
-            tracerData.Line.Visible = targetOnScreen
         end
     end
     
     for player, _ in pairs(self.Caches.TracerCache) do
         if not activePlayers[player] then
-            self:ClearTracer(player)
+            self:ClearCache("TracerCache", player)
+        end
+    end
+end
+
+function espModule:UpdateHeadDot(dt)
+    if not self.Config.HeadDotEnabled then
+        self:ClearAllCaches("HeadDotCache")
+        return
+    end
+    
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        self:ClearAllCaches("HeadDotCache")
+        return
+    end
+    
+    local activePlayers = {}
+    local posLerp = math.clamp(self.Config.PositionLerpSpeed * dt * 60, 0, 1)
+    
+    for _, player in ipairs(playersService:GetPlayers()) do
+        if player ~= localPlayer then
+            activePlayers[player] = true
+            
+            local success = pcall(function()
+                if not isValidTarget(self, player) then
+                    self:ClearCache("HeadDotCache", player)
+                    return
+                end
+                
+                local character = player.Character
+                local head = character:FindFirstChild("Head")
+                if not head then
+                    self:ClearCache("HeadDotCache", player)
+                    return
+                end
+                
+                if not self.Caches.HeadDotCache[player] then
+                    self.Caches.HeadDotCache[player] = self:CreateHeadDotCache(player)
+                end
+                
+                local cache = self.Caches.HeadDotCache[player]
+                local headScreen, onScreen = worldToScreen(head.Position)
+                
+                if not cache.Initialized then
+                    cache.CurrentPos = headScreen
+                    cache.Initialized = true
+                else
+                    cache.CurrentPos = lerpVector2(cache.CurrentPos, headScreen, posLerp)
+                end
+                
+                if onScreen then
+                    if self.Config.HeadDotOutline then
+                        cache.Outline.Position = cache.CurrentPos
+                        cache.Outline.Radius = self.Config.HeadDotSize + 1
+                        cache.Outline.Color = self.Config.HeadDotOutlineColor
+                        cache.Outline.Thickness = 2
+                        cache.Outline.Visible = true
+                    else
+                        cache.Outline.Visible = false
+                    end
+                    
+                    cache.Dot.Position = cache.CurrentPos
+                    cache.Dot.Radius = self.Config.HeadDotSize
+                    cache.Dot.Color = self.Config.HeadDotColor
+                    cache.Dot.Filled = self.Config.HeadDotFilled
+                    cache.Dot.Visible = true
+                else
+                    cache.Dot.Visible = false
+                    cache.Outline.Visible = false
+                end
+            end)
+            
+            if not success then
+                self:ClearCache("HeadDotCache", player)
+            end
+        end
+    end
+    
+    for player, _ in pairs(self.Caches.HeadDotCache) do
+        if not activePlayers[player] then
+            self:ClearCache("HeadDotCache", player)
         end
     end
 end
 
 function espModule:UpdateChams()
-    if not self.State.ChamsEnabled then
-        self:ClearAllChams()
+    if not self.Config.ChamsEnabled then
+        self:ClearAllCaches("ChamsCache")
         return
     end
     
-    if not (localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")) then
-        self:ClearAllChams()
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        self:ClearAllCaches("ChamsCache")
         return
     end
     
     local activePlayers = {}
     
-    for _, otherPlayer in ipairs(playersService:GetPlayers()) do
-        if otherPlayer ~= localPlayer then
-            activePlayers[otherPlayer] = true
+    for _, player in ipairs(playersService:GetPlayers()) do
+        if player ~= localPlayer then
+            activePlayers[player] = true
             
-            if not isValidTarget(self, otherPlayer) then
-                self:ClearChams(otherPlayer)
-                continue
-            end
+            local success = pcall(function()
+                if not isValidTarget(self, player) then
+                    self:ClearCache("ChamsCache", player)
+                    return
+                end
+                
+                if not self.Caches.ChamsCache[player] then
+                    self.Caches.ChamsCache[player] = self:CreateChamsCache(player)
+                end
+                
+                local highlight = self.Caches.ChamsCache[player]
+                if highlight then
+                    highlight.FillColor = self.Config.ChamsColor
+                    highlight.OutlineColor = self.Config.ChamsOutlineColor
+                    highlight.FillTransparency = self.Config.ChamsFillTransparency
+                    highlight.OutlineTransparency = self.Config.ChamsOutlineTransparency
+                end
+            end)
             
-            if not self.Caches.ChamsCache[otherPlayer] then
-                self.Caches.ChamsCache[otherPlayer] = self:CreateChams(otherPlayer)
-            else
-                local highlight = self.Caches.ChamsCache[otherPlayer]
-                highlight.FillColor = self.Config.ChamsColor
-                highlight.OutlineColor = self.Config.ChamsOutlineColor
-                highlight.FillTransparency = self.Config.ChamsFillTransparency
+            if not success then
+                self:ClearCache("ChamsCache", player)
             end
         end
     end
     
     for player, _ in pairs(self.Caches.ChamsCache) do
         if not activePlayers[player] then
-            self:ClearChams(player)
+            self:ClearCache("ChamsCache", player)
         end
     end
 end
 
 function espModule:UpdateWireframe()
-    if not self.State.WireframeEnabled then
-        self:ClearAllWireframes()
+    if not self.Config.WireframeEnabled then
+        self:ClearAllCaches("WireframeCache")
         return
     end
     
-    if not (localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")) then
-        self:ClearAllWireframes()
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        self:ClearAllCaches("WireframeCache")
         return
     end
     
     local activePlayers = {}
+    local edges = self.Config.WireframeCrossEnabled and 24 or 12
+    local allEdges = {}
+    for _, e in ipairs(CUBE_EDGES) do table.insert(allEdges, e) end
+    if self.Config.WireframeCrossEnabled then
+        for _, e in ipairs(CUBE_CROSS) do table.insert(allEdges, e) end
+    end
     
-    for _, otherPlayer in ipairs(playersService:GetPlayers()) do
-        if otherPlayer ~= localPlayer then
-            activePlayers[otherPlayer] = true
+    for _, player in ipairs(playersService:GetPlayers()) do
+        if player ~= localPlayer then
+            activePlayers[player] = true
             
-            if not isValidTarget(self, otherPlayer) then
-                self:ClearWireframe(otherPlayer)
-                continue
-            end
-            
-            local otherCharacter = otherPlayer.Character
-            
-            if not self.Caches.WireframeCache[otherPlayer] then
-                self.Caches.WireframeCache[otherPlayer] = self:CreateWireframe(otherPlayer)
-            end
-            
-            local wireframeData = self.Caches.WireframeCache[otherPlayer]
-            
-            for _, partName in ipairs(BODY_PARTS) do
-                local part = otherCharacter:FindFirstChild(partName)
-                local lines = wireframeData.Lines[partName]
+            local success = pcall(function()
+                if not isValidTarget(self, player) then
+                    self:ClearCache("WireframeCache", player)
+                    return
+                end
                 
-                if part and part:IsA("BasePart") and lines then
-                    local corners = getBoxCorners(part)
-                    local screenCorners = {}
-                    local allOnScreen = true
+                local character = player.Character
+                
+                if not self.Caches.WireframeCache[player] then
+                    self.Caches.WireframeCache[player] = self:CreateWireframeCache(player)
+                end
+                
+                local cache = self.Caches.WireframeCache[player]
+                
+                for _, partName in ipairs(BODY_PARTS) do
+                    local part = character:FindFirstChild(partName)
+                    local lines = cache.Lines[partName]
                     
-                    for i, corner in ipairs(corners) do
-                        local screenPos, onScreen, depth = worldToScreen(corner.Position)
-                        screenCorners[i] = {pos = screenPos, onScreen = onScreen, depth = depth}
-                        if depth < 0 then
-                            allOnScreen = false
+                    if part and part:IsA("BasePart") and lines then
+                        local corners = getBoxCorners(part)
+                        local screenCorners = {}
+                        local allVisible = true
+                        
+                        for i, corner in ipairs(corners) do
+                            local screen, onScreen, depth = worldToScreen(corner.Position)
+                            screenCorners[i] = {pos = screen, visible = onScreen, depth = depth}
+                            if depth < 0 then allVisible = false end
                         end
-                    end
-                    
-                    if allOnScreen then
-                        for i, edge in ipairs(CUBE_EDGES) do
-                            local line = lines[i]
-                            local corner1 = screenCorners[edge[1]]
-                            local corner2 = screenCorners[edge[2]]
-                            
-                            if corner1.onScreen and corner2.onScreen then
-                                line.From = corner1.pos
-                                line.To = corner2.pos
-                                line.Color = self.Config.WireframeColor
-                                line.Thickness = self.Config.WireframeThickness
-                                line.Visible = true
-                            else
-                                line.Visible = false
+                        
+                        if allVisible then
+                            for i, edge in ipairs(allEdges) do
+                                local line = lines[i]
+                                if line then
+                                    local c1, c2 = screenCorners[edge[1]], screenCorners[edge[2]]
+                                    
+                                    if c1.visible and c2.visible then
+                                        line.From = c1.pos
+                                        line.To = c2.pos
+                                        line.Color = self.Config.WireframeColor
+                                        line.Thickness = self.Config.WireframeThickness
+                                        line.Visible = true
+                                    else
+                                        line.Visible = false
+                                    end
+                                end
+                            end
+                        else
+                            for i = 1, edges do
+                                if lines[i] then lines[i].Visible = false end
                             end
                         end
                     else
-                        for i = 1, TOTAL_LINES do
-                            lines[i].Visible = false
-                        end
-                    end
-                else
-                    if lines then
-                        for i = 1, TOTAL_LINES do
-                            lines[i].Visible = false
+                        if lines then
+                            for i = 1, edges do
+                                if lines[i] then lines[i].Visible = false end
+                            end
                         end
                     end
                 end
+            end)
+            
+            if not success then
+                self:ClearCache("WireframeCache", player)
             end
         end
     end
     
     for player, _ in pairs(self.Caches.WireframeCache) do
         if not activePlayers[player] then
-            self:ClearWireframe(player)
+            self:ClearCache("WireframeCache", player)
         end
     end
 end
 
 function espModule:UpdateRing()
-    if not self.State.RingEnabled then
-        self:ClearAllRings()
+    if not self.Config.RingEnabled then
+        self:ClearAllCaches("RingCache")
         return
     end
     
-    if not (localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart")) then
-        self:ClearAllRings()
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        self:ClearAllCaches("RingCache")
         return
     end
     
+    local t = tick()
     local activePlayers = {}
     
-    for _, otherPlayer in ipairs(playersService:GetPlayers()) do
-        if otherPlayer ~= localPlayer then
-            activePlayers[otherPlayer] = true
+    for _, player in ipairs(playersService:GetPlayers()) do
+        if player ~= localPlayer then
+            activePlayers[player] = true
             
-            if not isValidTarget(self, otherPlayer) then
-                self:ClearRing(otherPlayer)
-                continue
-            end
+            local success = pcall(function()
+                if not isValidTarget(self, player) then
+                    self:ClearCache("RingCache", player)
+                    return
+                end
+                
+                local character = player.Character
+                local root = character:FindFirstChild("HumanoidRootPart")
+                
+                if not self.Caches.RingCache[player] then
+                    self.Caches.RingCache[player] = self:CreateRingCache(player)
+                end
+                
+                local cache = self.Caches.RingCache[player]
+                if cache then
+                    local yOffset = math.sin(t * self.Config.RingScanSpeed) * self.Config.RingScanHeight
+                    cache.Holder.CFrame = root.CFrame * CFrame.new(0, yOffset, 0)
+                    cache.Ring.Color3 = self.Config.RingColor
+                    cache.Ring.Radius = self.Config.RingRadius
+                    cache.Ring.InnerRadius = self.Config.RingRadius - 0.1
+                    cache.Ring.Transparency = 0.2 + math.abs(math.sin(t * self.Config.RingScanSpeed)) * 0.4
+                    cache.Ring.Visible = true
+                end
+            end)
             
-            local otherCharacter = otherPlayer.Character
-            local otherRoot = otherCharacter.HumanoidRootPart
-            
-            if not self.Caches.RingCache[otherPlayer] then
-                self.Caches.RingCache[otherPlayer] = self:CreateRing(otherPlayer)
-            end
-            
-            local data = self.Caches.RingCache[otherPlayer]
-            if data then
-                data.Root = otherRoot
-                data.Ring.Color3 = self.Config.RingColor
-                data.Ring.Visible = true
+            if not success then
+                self:ClearCache("RingCache", player)
             end
         end
     end
     
     for player, _ in pairs(self.Caches.RingCache) do
         if not activePlayers[player] then
-            self:ClearRing(player)
+            self:ClearCache("RingCache", player)
         end
     end
 end
 
-function espModule:UpdateAnimations(dt)
-    local t = tick()
-    currentRotation = (currentRotation - self.Config.RotateSpeed * dt) % 360
-    
-    for _, boxDrawings in pairs(self.Caches.BoxCache) do
-        if self.Config.BoxGradientEnabled and boxDrawings.Gradient then
-            boxDrawings.Gradient.Rotation = currentRotation
-        end
+function espModule:UpdateLookDirection(dt)
+    if not self.Config.LookDirectionEnabled then
+        self:ClearAllCaches("LookDirectionCache")
+        return
     end
     
-    for _, data in pairs(self.Caches.RingCache) do
-        if data and data.Root and data.Ring and data.Ring.Visible then
-            local yOffset = math.sin(t * self.Config.ScanSpeed) * self.Config.ScanHeight
-            data.Holder.CFrame = data.Root.CFrame * CFrame.new(0, yOffset, 0)
-            data.Ring.Transparency = 0.2 + (math.abs(math.sin(t * self.Config.ScanSpeed)) * 0.4)
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        self:ClearAllCaches("LookDirectionCache")
+        return
+    end
+    
+    local activePlayers = {}
+    local posLerp = math.clamp(self.Config.PositionLerpSpeed * dt * 60, 0, 1)
+    
+    for _, player in ipairs(playersService:GetPlayers()) do
+        if player ~= localPlayer then
+            activePlayers[player] = true
+            
+            local success = pcall(function()
+                if not isValidTarget(self, player) then
+                    self:ClearCache("LookDirectionCache", player)
+                    return
+                end
+                
+                local character = player.Character
+                local head = character:FindFirstChild("Head")
+                if not head then
+                    self:ClearCache("LookDirectionCache", player)
+                    return
+                end
+                
+                if not self.Caches.LookDirectionCache[player] then
+                    self.Caches.LookDirectionCache[player] = self:CreateLookDirectionCache(player)
+                end
+                
+                local cache = self.Caches.LookDirectionCache[player]
+                
+                local startPos = head.Position
+                local endPos = startPos + head.CFrame.LookVector * self.Config.LookDirectionLength
+                
+                local startScreen, startOn = worldToScreen(startPos)
+                local endScreen, endOn = worldToScreen(endPos)
+                
+                if startOn then
+                    if not cache.Initialized then
+                        cache.CurrentFrom = startScreen
+                        cache.CurrentTo = endScreen
+                        cache.Initialized = true
+                    else
+                        cache.CurrentFrom = lerpVector2(cache.CurrentFrom, startScreen, posLerp)
+                        cache.CurrentTo = lerpVector2(cache.CurrentTo, endScreen, posLerp)
+                    end
+                    
+                    cache.Line.From = cache.CurrentFrom
+                    cache.Line.To = cache.CurrentTo
+                    cache.Line.Color = self.Config.LookDirectionColor
+                    cache.Line.Thickness = self.Config.LookDirectionThickness
+                    cache.Line.Visible = true
+                else
+                    cache.Line.Visible = false
+                end
+            end)
+            
+            if not success then
+                self:ClearCache("LookDirectionCache", player)
+            end
+        end
+    end
+    
+    for player, _ in pairs(self.Caches.LookDirectionCache) do
+        if not activePlayers[player] then
+            self:ClearCache("LookDirectionCache", player)
         end
     end
 end
 
-function espModule:SetBoxEnabled(value)
-    self.State.BoxEnabled = value
-    if not value and not isAnyBoxFeatureEnabled(self) then
-        self:ClearAllBoxes()
+function espModule:UpdateOffscreenArrows()
+    if not self.Config.OffscreenArrowsEnabled then
+        self:ClearAllCaches("OffscreenCache")
+        return
     end
-end
-
-function espModule:SetNameEnabled(value)
-    self.State.NameEnabled = value
-    if not value and not isAnyBoxFeatureEnabled(self) then
-        self:ClearAllBoxes()
+    
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        self:ClearAllCaches("OffscreenCache")
+        return
     end
-end
-
-function espModule:SetDistanceEnabled(value)
-    self.State.DistanceEnabled = value
-    if not value and not isAnyBoxFeatureEnabled(self) then
-        self:ClearAllBoxes()
+    
+    local viewportSize = currentCamera.ViewportSize
+    local center = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+    local activePlayers = {}
+    
+    for _, player in ipairs(playersService:GetPlayers()) do
+        if player ~= localPlayer then
+            activePlayers[player] = true
+            
+            local success = pcall(function()
+                local character = player.Character
+                if not character then
+                    self:ClearCache("OffscreenCache", player)
+                    return
+                end
+                
+                local root = character:FindFirstChild("HumanoidRootPart")
+                local humanoid = character:FindFirstChild("Humanoid")
+                if not root or not humanoid or humanoid.Health <= 0 then
+                    self:ClearCache("OffscreenCache", player)
+                    return
+                end
+                
+                if isTeammate(self, player) then
+                    self:ClearCache("OffscreenCache", player)
+                    return
+                end
+                
+                local screenPos, onScreen = worldToScreen(root.Position)
+                
+                if onScreen then
+                    if self.Caches.OffscreenCache[player] then
+                        self.Caches.OffscreenCache[player].Arrow.Visible = false
+                        self.Caches.OffscreenCache[player].Outline.Visible = false
+                    end
+                    return
+                end
+                
+                if not self.Caches.OffscreenCache[player] then
+                    self.Caches.OffscreenCache[player] = self:CreateOffscreenCache(player)
+                end
+                
+                local cache = self.Caches.OffscreenCache[player]
+                
+                local direction = (screenPos - center).Unit
+                local arrowPos = center + direction * self.Config.OffscreenArrowRadius
+                
+                local angle = math.atan2(direction.Y, direction.X)
+                local size = self.Config.OffscreenArrowSize
+                
+                local p1 = arrowPos + Vector2.new(math.cos(angle) * size, math.sin(angle) * size)
+                local p2 = arrowPos + Vector2.new(math.cos(angle + 2.5) * size * 0.6, math.sin(angle + 2.5) * size * 0.6)
+                local p3 = arrowPos + Vector2.new(math.cos(angle - 2.5) * size * 0.6, math.sin(angle - 2.5) * size * 0.6)
+                
+                cache.Outline.PointA = p1
+                cache.Outline.PointB = p2
+                cache.Outline.PointC = p3
+                cache.Outline.Thickness = 2
+                cache.Outline.Visible = true
+                
+                cache.Arrow.PointA = p1
+                cache.Arrow.PointB = p2
+                cache.Arrow.PointC = p3
+                cache.Arrow.Color = self.Config.OffscreenArrowColor
+                cache.Arrow.Visible = true
+            end)
+            
+            if not success then
+                self:ClearCache("OffscreenCache", player)
+            end
+        end
     end
-end
-
-function espModule:SetHealthTextEnabled(value)
-    self.State.HealthTextEnabled = value
-    if not value and not isAnyBoxFeatureEnabled(self) then
-        self:ClearAllBoxes()
+    
+    for player, _ in pairs(self.Caches.OffscreenCache) do
+        if not activePlayers[player] then
+            self:ClearCache("OffscreenCache", player)
+        end
     end
-end
-
-function espModule:SetHealthBarEnabled(value)
-    self.State.HealthBarEnabled = value
-    if not value and not isAnyBoxFeatureEnabled(self) then
-        self:ClearAllBoxes()
-    end
-end
-
-function espModule:SetArmorBarEnabled(value)
-    self.State.ArmorBarEnabled = value
-    if not value and not isAnyBoxFeatureEnabled(self) then
-        self:ClearAllBoxes()
-    end
-end
-
-function espModule:SetSkeletonEnabled(value)
-    self.State.SkeletonEnabled = value
-    if not value then
-        self:ClearAllSkeletons()
-    end
-end
-
-function espModule:SetTracerEnabled(value)
-    self.State.TracerEnabled = value
-    if not value then
-        self:ClearAllTracers()
-    end
-end
-
-function espModule:SetChamsEnabled(value)
-    self.State.ChamsEnabled = value
-    if not value then
-        self:ClearAllChams()
-    end
-end
-
-function espModule:SetWireframeEnabled(value)
-    self.State.WireframeEnabled = value
-    if not value then
-        self:ClearAllWireframes()
-    end
-end
-
-function espModule:SetRingEnabled(value)
-    self.State.RingEnabled = value
-    if not value then
-        self:ClearAllRings()
-    end
-end
-
-function espModule:InitiateBox(color)
-    self.Config.BoxColor = color or self.Config.BoxColor
-    self.State.BoxEnabled = true
-end
-
-function espModule:InitiateName(value)
-    self.State.NameEnabled = value
-end
-
-function espModule:InitiateDistance(value)
-    self.State.DistanceEnabled = value
-end
-
-function espModule:InitiateSkeleton(color)
-    self.Config.SkeletonColor = color or self.Config.SkeletonColor
-    self.State.SkeletonEnabled = true
-end
-
-function espModule:InitiateHealthText(value)
-    self.State.HealthTextEnabled = value
-end
-
-function espModule:InitiateHealthBar(value)
-    self.State.HealthBarEnabled = value
-end
-
-function espModule:InitiateArmorBar(value)
-    self.State.ArmorBarEnabled = value
-end
-
-function espModule:InitiateTracer(color, origin)
-    self.Config.TracerColor = color or self.Config.TracerColor
-    self.Config.TracerOrigin = origin or self.Config.TracerOrigin
-    self.State.TracerEnabled = true
-end
-
-function espModule:InitiateChams(color)
-    self.Config.ChamsColor = color or self.Config.ChamsColor
-    self.State.ChamsEnabled = true
-end
-
-function espModule:InitiateWireframe(color)
-    self.Config.WireframeColor = color or self.Config.WireframeColor
-    self.State.WireframeEnabled = true
-end
-
-function espModule:InitiateRing(color)
-    self.Config.RingColor = color or self.Config.RingColor
-    self.State.RingEnabled = true
-end
-
-function espModule:TeamCheck(value)
-    self.Config.TeamCheck = value
-end
-
-function espModule:SetDistance(value)
-    self.Config.ESPDistance = value
 end
 
 function espModule:Cleanup()
-    self:ClearAllBoxes()
-    self:ClearAllSkeletons()
-    self:ClearAllTracers()
-    self:ClearAllChams()
-    self:ClearAllWireframes()
-    self:ClearAllRings()
+    for cacheName, _ in pairs(self.Caches) do
+        self:ClearAllCaches(cacheName)
+    end
 end
 
 function espModule:Destroy()
     self:Cleanup()
     
-    if heartbeatConnection then
-        heartbeatConnection:Disconnect()
-        heartbeatConnection = nil
-    end
-    
     if renderConnection then
         renderConnection:Disconnect()
         renderConnection = nil
     end
-    
-    if self.EspGui then
-        self.EspGui:Destroy()
-        self.EspGui = nil
-    end
-    
-    self.State.BoxEnabled = false
-    self.State.NameEnabled = false
-    self.State.DistanceEnabled = false
-    self.State.SkeletonEnabled = false
-    self.State.HealthTextEnabled = false
-    self.State.HealthBarEnabled = false
-    self.State.ArmorBarEnabled = false
-    self.State.TracerEnabled = false
-    self.State.ChamsEnabled = false
-    self.State.WireframeEnabled = false
-    self.State.RingEnabled = false
 end
 
 function espModule:Initialize()
-    self.EspGui = Instance.new("ScreenGui")
-    self.EspGui.Name = "MatchaEspGui"
-    self.EspGui.Parent = localPlayer.PlayerGui
-    self.EspGui.IgnoreGuiInset = true
-    self.EspGui.ResetOnSpawn = false
-    
-    playersService.PlayerRemoving:Connect(function(removedPlayer)
+    playersService.PlayerRemoving:Connect(function(player)
         safeCall(function()
-            self:ClearBox(removedPlayer)
-            self:ClearSkeleton(removedPlayer)
-            self:ClearTracer(removedPlayer)
-            self:ClearChams(removedPlayer)
-            self:ClearWireframe(removedPlayer)
-            self:ClearRing(removedPlayer)
+            for cacheName, _ in pairs(self.Caches) do
+                self:ClearCache(cacheName, player)
+            end
         end)
     end)
     
     for _, player in ipairs(playersService:GetPlayers()) do
         if player ~= localPlayer then
-            player.CharacterAdded:Connect(function(newCharacter)
+            player.CharacterAdded:Connect(function()
                 safeCall(function()
-                    self:ClearBox(player)
-                    self:ClearSkeleton(player)
-                    self:ClearTracer(player)
-                    self:ClearChams(player)
-                    self:ClearWireframe(player)
-                    self:ClearRing(player)
+                    for cacheName, _ in pairs(self.Caches) do
+                        self:ClearCache(cacheName, player)
+                    end
                 end)
             end)
         end
     end
     
-    playersService.PlayerAdded:Connect(function(addedPlayer)
-        addedPlayer.CharacterAdded:Connect(function(newCharacter)
+    playersService.PlayerAdded:Connect(function(player)
+        player.CharacterAdded:Connect(function(character)
             safeCall(function()
-                self:ClearBox(addedPlayer)
-                self:ClearSkeleton(addedPlayer)
-                self:ClearTracer(addedPlayer)
-                self:ClearChams(addedPlayer)
-                self:ClearWireframe(addedPlayer)
-                self:ClearRing(addedPlayer)
+                for cacheName, _ in pairs(self.Caches) do
+                    self:ClearCache(cacheName, player)
+                end
             end)
             
-            local humanoid = newCharacter:WaitForChild("Humanoid", 5)
+            local humanoid = character:WaitForChild("Humanoid", 5)
             if humanoid then
                 humanoid.Died:Connect(function()
                     safeCall(function()
-                        self:ClearBox(addedPlayer)
-                        self:ClearSkeleton(addedPlayer)
-                        self:ClearTracer(addedPlayer)
-                        self:ClearChams(addedPlayer)
-                        self:ClearWireframe(addedPlayer)
-                        self:ClearRing(addedPlayer)
+                        for cacheName, _ in pairs(self.Caches) do
+                            self:ClearCache(cacheName, player)
+                        end
                     end)
                 end)
             end
@@ -1495,15 +1647,18 @@ function espModule:Initialize()
     end)
     
     renderConnection = runService.RenderStepped:Connect(function(dt)
-        safeCall(function()
-            self:UpdateBox(dt)
-            self:UpdateSkeleton(dt)
-            self:UpdateTracer(dt)
-            self:UpdateChams()
-            self:UpdateWireframe()
-            self:UpdateRing()
-            self:UpdateAnimations(dt)
-        end)
+        rainbowHue = (rainbowHue + self.Config.RainbowSpeed * dt * 0.1) % 1
+        
+        safeCall(function() self:UpdateBox(dt) end)
+        safeCall(function() self:UpdateBox3D() end)
+        safeCall(function() self:UpdateSkeleton(dt) end)
+        safeCall(function() self:UpdateTracer(dt) end)
+        safeCall(function() self:UpdateHeadDot(dt) end)
+        safeCall(function() self:UpdateChams() end)
+        safeCall(function() self:UpdateWireframe() end)
+        safeCall(function() self:UpdateRing() end)
+        safeCall(function() self:UpdateLookDirection(dt) end)
+        safeCall(function() self:UpdateOffscreenArrows() end)
     end)
 end
 

@@ -1833,9 +1833,6 @@ function espModule:Initialize()
     self.EspGui.IgnoreGuiInset = true
     self.EspGui.ResetOnSpawn = false
     
-    -- Create the main GUI panel
-    self:CreateGUI()
-    
     playersService.PlayerRemoving:Connect(function(removedPlayer)
         safeCall(function()
             self:ClearBox(removedPlayer)

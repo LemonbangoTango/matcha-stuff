@@ -17,7 +17,11 @@ espModule.Config = {
     BoxFillTransparency = 0.5,
     RotateSpeed = 120,
     BoxOutlineEnabled = true,
+    BoxOutlineGradientEnabled = true,
     BoxOutlineColor = Color3.new(0, 0, 0),
+    BoxOutlineGradient1 = Color3.fromRGB(255, 100, 255),
+    BoxOutlineGradient2 = Color3.fromRGB(100, 200, 255),
+    BoxOutlineGradient3 = Color3.fromRGB(255, 100, 255),
     SkeletonColor = Color3.new(0.403922, 0.34902, 0.701961),
     ChamsColor = Color3.new(0.403922, 0.34902, 0.701961),
     ChamsFillTransparency = 0.5,
@@ -32,6 +36,10 @@ espModule.Config = {
     HealthColorFull = Color3.fromRGB(0, 255, 0),
     HealthColorMid = Color3.fromRGB(255, 255, 0),
     HealthColorLow = Color3.fromRGB(255, 0, 0),
+    HealthBarGradientEnabled = true,
+    HealthBarGradient1 = Color3.fromRGB(255, 0, 0),
+    HealthBarGradient2 = Color3.fromRGB(255, 255, 0),
+    HealthBarGradient3 = Color3.fromRGB(0, 255, 0),
     ArmorBarColor = Color3.fromRGB(0, 150, 255),
     RingColor = Color3.fromRGB(255, 255, 255),
     ScanSpeed = 2.5,
@@ -50,7 +58,11 @@ espModule.State = {
     TracerEnabled = false,
     ChamsEnabled = false,
     WireframeEnabled = false,
-    RingEnabled = false
+    RingEnabled = false,
+    GUIEnabled = true,
+    OutlineGradientEnabled = true,
+    FillGradientEnabled = true,
+    HealthGradientEnabled = true
 }
 
 espModule.Caches = {
@@ -219,6 +231,11 @@ function espModule:CreateBox(_)
         FillFrame = Instance.new("Frame"),
         Gradient = Instance.new("UIGradient"),
         Stroke = Instance.new("UIStroke"),
+        OutlineFrame = Instance.new("Frame"),
+        OutlineGradient = Instance.new("UIGradient"),
+        OutlineStroke = Instance.new("UIStroke"),
+        HealthBarFrame = Instance.new("Frame"),
+        HealthBarGradient = Instance.new("UIGradient"),
         CurrentHealth = 100,
         TargetHealth = 100,
         CurrentArmor = 0,
@@ -232,6 +249,7 @@ function espModule:CreateBox(_)
         Initialized = false
     }
     
+    -- Fill Frame with gradient
     boxDrawings.FillFrame.Parent = self.EspGui
     boxDrawings.FillFrame.BorderSizePixel = 0
     boxDrawings.FillFrame.BackgroundTransparency = 1
@@ -247,6 +265,34 @@ function espModule:CreateBox(_)
     boxDrawings.Stroke.Color = self.Config.BoxOutlineColor
     boxDrawings.Stroke.Transparency = 0
     boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
+    
+    -- Outline Frame with 3-color gradient
+    boxDrawings.OutlineFrame.Parent = self.EspGui
+    boxDrawings.OutlineFrame.BorderSizePixel = 0
+    boxDrawings.OutlineFrame.BackgroundTransparency = 1
+    boxDrawings.OutlineFrame.Visible = false
+    boxDrawings.OutlineGradient.Parent = boxDrawings.OutlineFrame
+    boxDrawings.OutlineGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, self.Config.BoxOutlineGradient1),
+        ColorSequenceKeypoint.new(0.5, self.Config.BoxOutlineGradient2),
+        ColorSequenceKeypoint.new(1, self.Config.BoxOutlineGradient3)
+    })
+    boxDrawings.OutlineStroke.Parent = boxDrawings.OutlineFrame
+    boxDrawings.OutlineStroke.Thickness = 2
+    boxDrawings.OutlineStroke.Color = Color3.fromRGB(255, 255, 255)
+    boxDrawings.OutlineStroke.Transparency = 0
+    
+    -- Health Bar Frame with gradient
+    boxDrawings.HealthBarFrame.Parent = self.EspGui
+    boxDrawings.HealthBarFrame.BorderSizePixel = 0
+    boxDrawings.HealthBarFrame.BackgroundTransparency = 0
+    boxDrawings.HealthBarFrame.Visible = false
+    boxDrawings.HealthBarGradient.Parent = boxDrawings.HealthBarFrame
+    boxDrawings.HealthBarGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, self.Config.HealthBarGradient1),
+        ColorSequenceKeypoint.new(0.5, self.Config.HealthBarGradient2),
+        ColorSequenceKeypoint.new(1, self.Config.HealthBarGradient3)
+    })
     
     boxDrawings.Box.Thickness = 1
     boxDrawings.Box.Color = self.Config.BoxColor
@@ -475,6 +521,8 @@ function espModule:ClearBox(targetPlayer)
         pcall(function() cache.ArmorBar:Remove() end)
         pcall(function() cache.ArmorBarOutline:Remove() end)
         pcall(function() cache.FillFrame:Destroy() end)
+        pcall(function() cache.OutlineFrame:Destroy() end)
+        pcall(function() cache.HealthBarFrame:Destroy() end)
         self.Caches.BoxCache[targetPlayer] = nil
     end
 end
@@ -567,6 +615,8 @@ function espModule:HideBox(targetPlayer)
         boxDrawings.Box.Visible = false
         boxDrawings.BoxOutline.Visible = false
         boxDrawings.FillFrame.Visible = false
+        boxDrawings.OutlineFrame.Visible = false
+        boxDrawings.HealthBarFrame.Visible = false
         boxDrawings.Name.Visible = false
         boxDrawings.Distance.Visible = false
         boxDrawings.HealthText.Visible = false
@@ -712,31 +762,33 @@ function espModule:UpdateBox(dt)
                     boxDrawings.Box.Visible = false
                     boxDrawings.BoxOutline.Visible = false
                     boxDrawings.FillFrame.Visible = false
+                    boxDrawings.OutlineFrame.Visible = false
 
-                    if self.Config.BoxGradientEnabled then
+                    -- Handle both fill and outline gradients
+                    if self.Config.BoxGradientEnabled and self.State.FillGradientEnabled then
                         boxDrawings.FillFrame.Position = UDim2.fromOffset(smoothTopLeft.X, smoothTopLeft.Y)
                         boxDrawings.FillFrame.Size = UDim2.fromOffset(smoothWidth, smoothHeight)
                         boxDrawings.FillFrame.BackgroundTransparency = self.Config.BoxFillTransparency
                         boxDrawings.FillFrame.Visible = true
-                        boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
-                        boxDrawings.Stroke.Color = self.Config.BoxOutlineColor
-                    else
-                        if self.Config.BoxOutlineEnabled then
-                            boxDrawings.BoxOutline.Size = Vector2.new(smoothWidth, smoothHeight)
-                            boxDrawings.BoxOutline.Position = smoothTopLeft
-                            boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
-                            boxDrawings.BoxOutline.Visible = true
-                        end
-                        
-                        boxDrawings.Box.Size = Vector2.new(smoothWidth, smoothHeight)
-                        boxDrawings.Box.Position = smoothTopLeft
-                        boxDrawings.Box.Color = self.Config.BoxColor
-                        boxDrawings.Box.Visible = true
+                        boxDrawings.Stroke.Enabled = false
+                    end
+                    
+                    if self.State.OutlineGradientEnabled and self.Config.BoxOutlineEnabled then
+                        boxDrawings.OutlineFrame.Position = UDim2.fromOffset(smoothTopLeft.X, smoothTopLeft.Y)
+                        boxDrawings.OutlineFrame.Size = UDim2.fromOffset(smoothWidth, smoothHeight)
+                        boxDrawings.OutlineFrame.BackgroundTransparency = 1
+                        boxDrawings.OutlineFrame.Visible = true
+                    elseif self.Config.BoxOutlineEnabled and not self.State.OutlineGradientEnabled then
+                        boxDrawings.BoxOutline.Size = Vector2.new(smoothWidth, smoothHeight)
+                        boxDrawings.BoxOutline.Position = smoothTopLeft
+                        boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
+                        boxDrawings.BoxOutline.Visible = true
                     end
                 else
                     boxDrawings.Box.Visible = false
                     boxDrawings.BoxOutline.Visible = false
                     boxDrawings.FillFrame.Visible = false
+                    boxDrawings.OutlineFrame.Visible = false
                     if boxDrawings.Stroke then boxDrawings.Stroke.Enabled = false end
                 end
 
@@ -785,20 +837,29 @@ function espModule:UpdateBox(dt)
                         boxDrawings.HealthBarBackground.Position = Vector2.new(barX, barY)
                         boxDrawings.HealthBarBackground.Visible = true
                         
-                        boxDrawings.HealthBar.Size = Vector2.new(2, barHeight)
-                        boxDrawings.HealthBar.Position = Vector2.new(barX, barY + smoothHeight - barHeight)
-                        boxDrawings.HealthBar.Color = boxDrawings.CurrentHealthColor
-                        boxDrawings.HealthBar.Visible = true
+                        -- Use gradient health bar if enabled
+                        if self.State.HealthGradientEnabled then
+                            boxDrawings.HealthBarFrame.Position = UDim2.fromOffset(barX, barY + smoothHeight - barHeight)
+                            boxDrawings.HealthBarFrame.Size = UDim2.fromOffset(2, barHeight)
+                            boxDrawings.HealthBarFrame.Visible = barHeight > 0
+                        else
+                            boxDrawings.HealthBar.Size = Vector2.new(2, barHeight)
+                            boxDrawings.HealthBar.Position = Vector2.new(barX, barY + smoothHeight - barHeight)
+                            boxDrawings.HealthBar.Color = boxDrawings.CurrentHealthColor
+                            boxDrawings.HealthBar.Visible = true
+                        end
                     else
                         boxDrawings.HealthBar.Visible = false
                         boxDrawings.HealthBarBackground.Visible = false
                         boxDrawings.HealthBarOutline.Visible = false
+                        boxDrawings.HealthBarFrame.Visible = false
                     end
                 else
                     boxDrawings.HealthText.Visible = false
                     boxDrawings.HealthBar.Visible = false
                     boxDrawings.HealthBarBackground.Visible = false
                     boxDrawings.HealthBarOutline.Visible = false
+                    boxDrawings.HealthBarFrame.Visible = false
                 end
 
                 if self.State.ArmorBarEnabled then
@@ -1247,6 +1308,9 @@ function espModule:UpdateAnimations(dt)
         if self.Config.BoxGradientEnabled and boxDrawings.Gradient then
             boxDrawings.Gradient.Rotation = currentRotation
         end
+        if self.State.OutlineGradientEnabled and boxDrawings.OutlineGradient then
+            boxDrawings.OutlineGradient.Rotation = currentRotation
+        end
     end
     
     for _, data in pairs(self.Caches.RingCache) do
@@ -1394,6 +1458,334 @@ function espModule:SetDistance(value)
     self.Config.ESPDistance = value
 end
 
+function espModule:SetOutlineGradient1(color)
+    self.Config.BoxOutlineGradient1 = color
+end
+
+function espModule:SetOutlineGradient2(color)
+    self.Config.BoxOutlineGradient2 = color
+end
+
+function espModule:SetOutlineGradient3(color)
+    self.Config.BoxOutlineGradient3 = color
+end
+
+function espModule:SetFillGradient1(color)
+    self.Config.BoxGradientColor1 = color
+end
+
+function espModule:SetFillGradient2(color)
+    self.Config.BoxGradientColor2 = color
+end
+
+function espModule:SetHealthGradient1(color)
+    self.Config.HealthBarGradient1 = color
+end
+
+function espModule:SetHealthGradient2(color)
+    self.Config.HealthBarGradient2 = color
+end
+
+function espModule:SetHealthGradient3(color)
+    self.Config.HealthBarGradient3 = color
+end
+
+function espModule:UpdateOutlineGradient()
+    for _, boxDrawings in pairs(self.Caches.BoxCache) do
+        if boxDrawings.OutlineGradient then
+            boxDrawings.OutlineGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, self.Config.BoxOutlineGradient1),
+                ColorSequenceKeypoint.new(0.5, self.Config.BoxOutlineGradient2),
+                ColorSequenceKeypoint.new(1, self.Config.BoxOutlineGradient3)
+            })
+        end
+    end
+end
+
+function espModule:UpdateFillGradient()
+    for _, boxDrawings in pairs(self.Caches.BoxCache) do
+        if boxDrawings.Gradient then
+            boxDrawings.Gradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, self.Config.BoxGradientColor1),
+                ColorSequenceKeypoint.new(0.5, self.Config.BoxGradientColor2),
+                ColorSequenceKeypoint.new(1, self.Config.BoxGradientColor1)
+            })
+        end
+    end
+end
+
+function espModule:UpdateHealthGradient()
+    for _, boxDrawings in pairs(self.Caches.BoxCache) do
+        if boxDrawings.HealthBarGradient then
+            boxDrawings.HealthBarGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, self.Config.HealthBarGradient1),
+                ColorSequenceKeypoint.new(0.5, self.Config.HealthBarGradient2),
+                ColorSequenceKeypoint.new(1, self.Config.HealthBarGradient3)
+            })
+        end
+    end
+end
+
+function espModule:CreateGUI()
+    local guiFrame = Instance.new("Frame")
+    guiFrame.Name = "MatchaEspGuiPanel"
+    guiFrame.Parent = self.EspGui
+    guiFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    guiFrame.BorderSizePixel = 0
+    guiFrame.Size = UDim2.new(0, 300, 0, 600)
+    guiFrame.Position = UDim2.new(0, 10, 0, 10)
+    
+    local scrolling = Instance.new("ScrollingFrame")
+    scrolling.Name = "ScrollingContainer"
+    scrolling.Parent = guiFrame
+    scrolling.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    scrolling.BorderSizePixel = 0
+    scrolling.Size = UDim2.new(1, 0, 1, 0)
+    scrolling.ScrollBarThickness = 8
+    scrolling.CanvasSize = UDim2.new(0, 0, 0, 1200)
+    
+    local layout = Instance.new("UIListLayout")
+    layout.Parent = scrolling
+    layout.Padding = UDim.new(0, 5)
+    layout.FillDirection = Enum.FillDirection.Vertical
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    
+    local function createButton(name, callback)
+        local button = Instance.new("TextButton")
+        button.Name = name
+        button.Parent = scrolling
+        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        button.BorderSizePixel = 0
+        button.TextColor3 = Color3.new(1, 1, 1)
+        button.TextScaled = true
+        button.Font = Enum.Font.GothamBold
+        button.Text = name
+        button.Size = UDim2.new(1, -10, 0, 30)
+        
+        button.MouseButton1Click:Connect(callback)
+        return button
+    end
+    
+    local function createToggle(name, initialState, callback)
+        local container = Instance.new("Frame")
+        container.Name = name
+        container.Parent = scrolling
+        container.BackgroundTransparency = 1
+        container.Size = UDim2.new(1, -10, 0, 30)
+        
+        local toggle = Instance.new("TextButton")
+        toggle.Parent = container
+        toggle.BackgroundColor3 = initialState and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+        toggle.BorderSizePixel = 0
+        toggle.TextColor3 = Color3.new(1, 1, 1)
+        toggle.TextScaled = true
+        toggle.Font = Enum.Font.GothamBold
+        toggle.Text = name .. ": " .. (initialState and "ON" or "OFF")
+        toggle.Size = UDim2.new(1, 0, 1, 0)
+        
+        local toggleState = initialState
+        toggle.MouseButton1Click:Connect(function()
+            toggleState = not toggleState
+            toggle.BackgroundColor3 = toggleState and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+            toggle.Text = name .. ": " .. (toggleState and "ON" or "OFF")
+            callback(toggleState)
+        end)
+        
+        return container, toggle
+    end
+    
+    local function createColorButton(name, currentColor, callback)
+        local button = Instance.new("TextButton")
+        button.Name = name
+        button.Parent = scrolling
+        button.BackgroundColor3 = currentColor
+        button.BorderSizePixel = 0
+        button.TextColor3 = Color3.new(1, 1, 1)
+        button.TextScaled = true
+        button.Font = Enum.Font.GothamBold
+        button.Text = name
+        button.Size = UDim2.new(1, -10, 0, 30)
+        
+        button.MouseButton1Click:Connect(function()
+            callback(button)
+        end)
+        return button
+    end
+    
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Parent = scrolling
+    title.BackgroundColor3 = Color3.fromRGB(80, 40, 120)
+    title.BorderSizePixel = 0
+    title.TextColor3 = Color3.new(1, 1, 1)
+    title.TextScaled = true
+    title.Font = Enum.Font.GothamBold
+    title.Text = "Matcha ESP Pro"
+    title.Size = UDim2.new(1, -10, 0, 40)
+    
+    -- Main ESP Toggle
+    createToggle("ESP Master", false, function(state)
+        self.State.GUIEnabled = state
+    end)
+    
+    -- Box Settings
+    createToggle("Box ESP", false, function(state)
+        self:SetBoxEnabled(state)
+    end)
+    
+    createToggle("Show Names", false, function(state)
+        self:SetNameEnabled(state)
+    end)
+    
+    createToggle("Show Distance", false, function(state)
+        self:SetDistanceEnabled(state)
+    end)
+    
+    -- Gradient Settings
+    createToggle("Fill Gradient", true, function(state)
+        self.State.FillGradientEnabled = state
+    end)
+    
+    createToggle("Outline Gradient", true, function(state)
+        self.State.OutlineGradientEnabled = state
+    end)
+    
+    -- Outline Gradient Colors
+    local outlineLabel = Instance.new("TextLabel")
+    outlineLabel.Name = "OutlineLabel"
+    outlineLabel.Parent = scrolling
+    outlineLabel.BackgroundColor3 = Color3.fromRGB(80, 40, 120)
+    outlineLabel.BorderSizePixel = 0
+    outlineLabel.TextColor3 = Color3.new(1, 1, 1)
+    outlineLabel.TextScaled = true
+    outlineLabel.Font = Enum.Font.GothamBold
+    outlineLabel.Text = "Outline Gradient Colors"
+    outlineLabel.Size = UDim2.new(1, -10, 0, 25)
+    
+    createColorButton("Outline Grad 1", self.Config.BoxOutlineGradient1, function(btn)
+        -- Color picker would go here in a real implementation
+        btn.BackgroundColor3 = Color3.fromRGB(math.random(100, 255), math.random(100, 255), math.random(100, 255))
+        self:SetOutlineGradient1(btn.BackgroundColor3)
+        self:UpdateOutlineGradient()
+    end)
+    
+    createColorButton("Outline Grad 2", self.Config.BoxOutlineGradient2, function(btn)
+        btn.BackgroundColor3 = Color3.fromRGB(math.random(100, 255), math.random(100, 255), math.random(100, 255))
+        self:SetOutlineGradient2(btn.BackgroundColor3)
+        self:UpdateOutlineGradient()
+    end)
+    
+    createColorButton("Outline Grad 3", self.Config.BoxOutlineGradient3, function(btn)
+        btn.BackgroundColor3 = Color3.fromRGB(math.random(100, 255), math.random(100, 255), math.random(100, 255))
+        self:SetOutlineGradient3(btn.BackgroundColor3)
+        self:UpdateOutlineGradient()
+    end)
+    
+    -- Fill Gradient Colors
+    local fillLabel = Instance.new("TextLabel")
+    fillLabel.Name = "FillLabel"
+    fillLabel.Parent = scrolling
+    fillLabel.BackgroundColor3 = Color3.fromRGB(80, 40, 120)
+    fillLabel.BorderSizePixel = 0
+    fillLabel.TextColor3 = Color3.new(1, 1, 1)
+    fillLabel.TextScaled = true
+    fillLabel.Font = Enum.Font.GothamBold
+    fillLabel.Text = "Fill Gradient Colors"
+    fillLabel.Size = UDim2.new(1, -10, 0, 25)
+    
+    createColorButton("Fill Grad 1", self.Config.BoxGradientColor1, function(btn)
+        btn.BackgroundColor3 = Color3.fromRGB(math.random(100, 255), math.random(100, 255), math.random(100, 255))
+        self:SetFillGradient1(btn.BackgroundColor3)
+        self:UpdateFillGradient()
+    end)
+    
+    createColorButton("Fill Grad 2", self.Config.BoxGradientColor2, function(btn)
+        btn.BackgroundColor3 = Color3.fromRGB(math.random(100, 255), math.random(100, 255), math.random(100, 255))
+        self:SetFillGradient2(btn.BackgroundColor3)
+        self:UpdateFillGradient()
+    end)
+    
+    -- Health Bar Settings
+    createToggle("Health Bar", true, function(state)
+        self:SetHealthBarEnabled(state)
+    end)
+    
+    createToggle("Health Gradient", true, function(state)
+        self.State.HealthGradientEnabled = state
+    end)
+    
+    -- Health Gradient Colors
+    local healthLabel = Instance.new("TextLabel")
+    healthLabel.Name = "HealthLabel"
+    healthLabel.Parent = scrolling
+    healthLabel.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+    healthLabel.BorderSizePixel = 0
+    healthLabel.TextColor3 = Color3.new(1, 1, 1)
+    healthLabel.TextScaled = true
+    healthLabel.Font = Enum.Font.GothamBold
+    healthLabel.Text = "Health Bar Gradient"
+    healthLabel.Size = UDim2.new(1, -10, 0, 25)
+    
+    createColorButton("Health Grad 1", self.Config.HealthBarGradient1, function(btn)
+        btn.BackgroundColor3 = Color3.fromRGB(math.random(100, 255), math.random(100, 255), math.random(100, 255))
+        self:SetHealthGradient1(btn.BackgroundColor3)
+        self:UpdateHealthGradient()
+    end)
+    
+    createColorButton("Health Grad 2", self.Config.HealthBarGradient2, function(btn)
+        btn.BackgroundColor3 = Color3.fromRGB(math.random(100, 255), math.random(100, 255), math.random(100, 255))
+        self:SetHealthGradient2(btn.BackgroundColor3)
+        self:UpdateHealthGradient()
+    end)
+    
+    createColorButton("Health Grad 3", self.Config.HealthBarGradient3, function(btn)
+        btn.BackgroundColor3 = Color3.fromRGB(math.random(100, 255), math.random(100, 255), math.random(100, 255))
+        self:SetHealthGradient3(btn.BackgroundColor3)
+        self:UpdateHealthGradient()
+    end)
+    
+    -- Other ESP Features
+    createToggle("Skeleton", false, function(state)
+        self:SetSkeletonEnabled(state)
+    end)
+    
+    createToggle("Tracer", false, function(state)
+        self:SetTracerEnabled(state)
+    end)
+    
+    createToggle("Chams", false, function(state)
+        self:SetChamsEnabled(state)
+    end)
+    
+    createToggle("Wireframe", false, function(state)
+        self:SetWireframeEnabled(state)
+    end)
+    
+    createToggle("Ring", false, function(state)
+        self:SetRingEnabled(state)
+    end)
+    
+    -- Settings
+    createToggle("Team Check", true, function(state)
+        self:TeamCheck(state)
+    end)
+    
+    createButton("Reset to Default", function()
+        self.Config.BoxOutlineGradient1 = Color3.fromRGB(255, 100, 255)
+        self.Config.BoxOutlineGradient2 = Color3.fromRGB(100, 200, 255)
+        self.Config.BoxOutlineGradient3 = Color3.fromRGB(255, 100, 255)
+        self.Config.HealthBarGradient1 = Color3.fromRGB(255, 0, 0)
+        self.Config.HealthBarGradient2 = Color3.fromRGB(255, 255, 0)
+        self.Config.HealthBarGradient3 = Color3.fromRGB(0, 255, 0)
+        self:UpdateOutlineGradient()
+        self:UpdateFillGradient()
+        self:UpdateHealthGradient()
+    end)
+    
+    return guiFrame
+end
+
 function espModule:Cleanup()
     self:ClearAllBoxes()
     self:ClearAllSkeletons()
@@ -1440,6 +1832,9 @@ function espModule:Initialize()
     self.EspGui.Parent = localPlayer.PlayerGui
     self.EspGui.IgnoreGuiInset = true
     self.EspGui.ResetOnSpawn = false
+    
+    -- Create the main GUI panel
+    self:CreateGUI()
     
     playersService.PlayerRemoving:Connect(function(removedPlayer)
         safeCall(function()

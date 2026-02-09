@@ -11,17 +11,18 @@ espModule.Config = {
     TeamCheck = true,
     ESPDistance = 1000,
     BoxColor = Color3.new(0.403922, 0.34902, 0.701961),
-    BoxGradientEnabled = false,
-    BoxGradientColor1 = Color3.new(0.403922, 0.34902, 0.701961),
-    BoxGradientColor2 = Color3.new(0.8, 0.4, 1),
-    BoxFillTransparency = 0.5,
+    BoxGradientEnabled = true,
+    BoxGradientColor1 = Color3.fromRGB(200, 0, 255),
+    BoxGradientColor2 = Color3.fromRGB(100, 150, 255),
+    BoxGradientColor3 = Color3.fromRGB(100, 255, 200),
+    BoxFillTransparency = 0.6,
     RotateSpeed = 120,
     BoxOutlineEnabled = true,
     BoxOutlineGradientEnabled = true,
     BoxOutlineColor = Color3.new(0, 0, 0),
     BoxOutlineGradient1 = Color3.fromRGB(255, 100, 255),
     BoxOutlineGradient2 = Color3.fromRGB(100, 200, 255),
-    BoxOutlineGradient3 = Color3.fromRGB(255, 100, 255),
+    BoxOutlineGradient3 = Color3.fromRGB(100, 255, 200),
     SkeletonColor = Color3.new(0.403922, 0.34902, 0.701961),
     ChamsColor = Color3.new(0.403922, 0.34902, 0.701961),
     ChamsFillTransparency = 0.5,
@@ -249,7 +250,6 @@ function espModule:CreateBox(_)
         Initialized = false
     }
     
-    -- Fill Frame with gradient
     boxDrawings.FillFrame.Parent = self.EspGui
     boxDrawings.FillFrame.BorderSizePixel = 0
     boxDrawings.FillFrame.BackgroundTransparency = 1
@@ -258,12 +258,13 @@ function espModule:CreateBox(_)
     boxDrawings.Gradient.Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0, self.Config.BoxGradientColor1),
         ColorSequenceKeypoint.new(0.5, self.Config.BoxGradientColor2),
-        ColorSequenceKeypoint.new(1, self.Config.BoxGradientColor1)
+        ColorSequenceKeypoint.new(1, self.Config.BoxGradientColor3)
     })
+    boxDrawings.Gradient.Rotation = 45
     boxDrawings.Stroke.Parent = boxDrawings.FillFrame
-    boxDrawings.Stroke.Thickness = 1.2
+    boxDrawings.Stroke.Thickness = 1
     boxDrawings.Stroke.Color = self.Config.BoxOutlineColor
-    boxDrawings.Stroke.Transparency = 0
+    boxDrawings.Stroke.Transparency = 0.1
     boxDrawings.Stroke.Enabled = self.Config.BoxOutlineEnabled
     
     -- Outline Frame with 3-color gradient
@@ -277,15 +278,17 @@ function espModule:CreateBox(_)
         ColorSequenceKeypoint.new(0.5, self.Config.BoxOutlineGradient2),
         ColorSequenceKeypoint.new(1, self.Config.BoxOutlineGradient3)
     })
+    boxDrawings.OutlineGradient.Rotation = 45
     boxDrawings.OutlineStroke.Parent = boxDrawings.OutlineFrame
-    boxDrawings.OutlineStroke.Thickness = 2
+    boxDrawings.OutlineStroke.Thickness = 1
     boxDrawings.OutlineStroke.Color = Color3.fromRGB(255, 255, 255)
-    boxDrawings.OutlineStroke.Transparency = 0
+    boxDrawings.OutlineStroke.Transparency = 0.05
     
     -- Health Bar Frame with gradient
     boxDrawings.HealthBarFrame.Parent = self.EspGui
     boxDrawings.HealthBarFrame.BorderSizePixel = 0
-    boxDrawings.HealthBarFrame.BackgroundTransparency = 0
+    boxDrawings.HealthBarFrame.BackgroundTransparency = 0.1
+    boxDrawings.HealthBarFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
     boxDrawings.HealthBarFrame.Visible = false
     boxDrawings.HealthBarGradient.Parent = boxDrawings.HealthBarFrame
     boxDrawings.HealthBarGradient.Color = ColorSequence.new({
@@ -293,6 +296,7 @@ function espModule:CreateBox(_)
         ColorSequenceKeypoint.new(0.5, self.Config.HealthBarGradient2),
         ColorSequenceKeypoint.new(1, self.Config.HealthBarGradient3)
     })
+    boxDrawings.HealthBarGradient.Rotation = 90
     
     boxDrawings.Box.Thickness = 1
     boxDrawings.Box.Color = self.Config.BoxColor
@@ -300,7 +304,7 @@ function espModule:CreateBox(_)
     boxDrawings.Box.Visible = false
     boxDrawings.Box.Transparency = 1
     
-    boxDrawings.BoxOutline.Thickness = 3
+    boxDrawings.BoxOutline.Thickness = 1.5
     boxDrawings.BoxOutline.Color = self.Config.BoxOutlineColor
     boxDrawings.BoxOutline.Filled = false
     boxDrawings.BoxOutline.Visible = false
@@ -334,22 +338,22 @@ function espModule:CreateBox(_)
     boxDrawings.HealthText.Transparency = 1
     
     boxDrawings.HealthBarBackground.Thickness = 1
-    boxDrawings.HealthBarBackground.Color = Color3.fromRGB(30, 30, 30)
+    boxDrawings.HealthBarBackground.Color = Color3.fromRGB(20, 20, 20)
     boxDrawings.HealthBarBackground.Filled = true
     boxDrawings.HealthBarBackground.Visible = false
-    boxDrawings.HealthBarBackground.Transparency = 0.3
+    boxDrawings.HealthBarBackground.Transparency = 0.5
     
     boxDrawings.HealthBarOutline.Thickness = 1
-    boxDrawings.HealthBarOutline.Color = Color3.fromRGB(0, 0, 0)
+    boxDrawings.HealthBarOutline.Color = Color3.fromRGB(80, 80, 80)
     boxDrawings.HealthBarOutline.Filled = false
     boxDrawings.HealthBarOutline.Visible = false
-    boxDrawings.HealthBarOutline.Transparency = 1
+    boxDrawings.HealthBarOutline.Transparency = 0.3
     
     boxDrawings.HealthBar.Thickness = 1
     boxDrawings.HealthBar.Color = self.Config.HealthColorFull
     boxDrawings.HealthBar.Filled = true
     boxDrawings.HealthBar.Visible = false
-    boxDrawings.HealthBar.Transparency = 1
+    boxDrawings.HealthBar.Transparency = 0.2
     
     boxDrawings.ArmorText.Size = 12
     boxDrawings.ArmorText.Color = self.Config.ArmorBarColor
@@ -361,16 +365,16 @@ function espModule:CreateBox(_)
     boxDrawings.ArmorText.Transparency = 1
     
     boxDrawings.ArmorBarBackground.Thickness = 1
-    boxDrawings.ArmorBarBackground.Color = Color3.fromRGB(30, 30, 30)
+    boxDrawings.ArmorBarBackground.Color = Color3.fromRGB(20, 20, 20)
     boxDrawings.ArmorBarBackground.Filled = true
     boxDrawings.ArmorBarBackground.Visible = false
-    boxDrawings.ArmorBarBackground.Transparency = 0.3
+    boxDrawings.ArmorBarBackground.Transparency = 0.5
     
     boxDrawings.ArmorBarOutline.Thickness = 1
-    boxDrawings.ArmorBarOutline.Color = Color3.fromRGB(0, 0, 0)
+    boxDrawings.ArmorBarOutline.Color = Color3.fromRGB(80, 80, 80)
     boxDrawings.ArmorBarOutline.Filled = false
     boxDrawings.ArmorBarOutline.Visible = false
-    boxDrawings.ArmorBarOutline.Transparency = 1
+    boxDrawings.ArmorBarOutline.Transparency = 0.3
     
     boxDrawings.ArmorBar.Thickness = 1
     boxDrawings.ArmorBar.Color = self.Config.ArmorBarColor
@@ -778,6 +782,9 @@ function espModule:UpdateBox(dt)
                         boxDrawings.OutlineFrame.Size = UDim2.fromOffset(smoothWidth, smoothHeight)
                         boxDrawings.OutlineFrame.BackgroundTransparency = 1
                         boxDrawings.OutlineFrame.Visible = true
+                        if boxDrawings.OutlineStroke then
+                            boxDrawings.OutlineStroke.Enabled = true
+                        end
                     elseif self.Config.BoxOutlineEnabled and not self.State.OutlineGradientEnabled then
                         boxDrawings.BoxOutline.Size = Vector2.new(smoothWidth, smoothHeight)
                         boxDrawings.BoxOutline.Position = smoothTopLeft
@@ -829,22 +836,22 @@ function espModule:UpdateBox(dt)
                     if self.State.HealthBarEnabled then
                         local barHeight = smoothHeight * (boxDrawings.CurrentHealth / 100)
                         
-                        boxDrawings.HealthBarOutline.Size = Vector2.new(4, smoothHeight + 2)
-                        boxDrawings.HealthBarOutline.Position = Vector2.new(barX - 1, barY - 1)
+                        boxDrawings.HealthBarOutline.Size = Vector2.new(5, smoothHeight + 2)
+                        boxDrawings.HealthBarOutline.Position = Vector2.new(barX - 1.5, barY - 1)
                         boxDrawings.HealthBarOutline.Visible = true
                         
-                        boxDrawings.HealthBarBackground.Size = Vector2.new(2, smoothHeight)
-                        boxDrawings.HealthBarBackground.Position = Vector2.new(barX, barY)
+                        boxDrawings.HealthBarBackground.Size = Vector2.new(3, smoothHeight)
+                        boxDrawings.HealthBarBackground.Position = Vector2.new(barX - 0.5, barY)
                         boxDrawings.HealthBarBackground.Visible = true
                         
                         -- Use gradient health bar if enabled
                         if self.State.HealthGradientEnabled then
-                            boxDrawings.HealthBarFrame.Position = UDim2.fromOffset(barX, barY + smoothHeight - barHeight)
-                            boxDrawings.HealthBarFrame.Size = UDim2.fromOffset(2, barHeight)
+                            boxDrawings.HealthBarFrame.Position = UDim2.fromOffset(barX - 0.5, barY + smoothHeight - barHeight)
+                            boxDrawings.HealthBarFrame.Size = UDim2.fromOffset(3, barHeight)
                             boxDrawings.HealthBarFrame.Visible = barHeight > 0
                         else
-                            boxDrawings.HealthBar.Size = Vector2.new(2, barHeight)
-                            boxDrawings.HealthBar.Position = Vector2.new(barX, barY + smoothHeight - barHeight)
+                            boxDrawings.HealthBar.Size = Vector2.new(3, barHeight)
+                            boxDrawings.HealthBar.Position = Vector2.new(barX - 0.5, barY + smoothHeight - barHeight)
                             boxDrawings.HealthBar.Color = boxDrawings.CurrentHealthColor
                             boxDrawings.HealthBar.Visible = true
                         end
@@ -873,16 +880,16 @@ function espModule:UpdateBox(dt)
                     local armorBarX = smoothTopLeft.X + smoothWidth + 2
                     local armorBarHeight = smoothHeight * (boxDrawings.CurrentArmor / 100)
                     
-                    boxDrawings.ArmorBarOutline.Size = Vector2.new(4, smoothHeight + 2)
-                    boxDrawings.ArmorBarOutline.Position = Vector2.new(armorBarX - 1, barY - 1)
+                    boxDrawings.ArmorBarOutline.Size = Vector2.new(5, smoothHeight + 2)
+                    boxDrawings.ArmorBarOutline.Position = Vector2.new(armorBarX - 1.5, barY - 1)
                     boxDrawings.ArmorBarOutline.Visible = true
                     
-                    boxDrawings.ArmorBarBackground.Size = Vector2.new(2, smoothHeight)
-                    boxDrawings.ArmorBarBackground.Position = Vector2.new(armorBarX, barY)
+                    boxDrawings.ArmorBarBackground.Size = Vector2.new(3, smoothHeight)
+                    boxDrawings.ArmorBarBackground.Position = Vector2.new(armorBarX - 0.5, barY)
                     boxDrawings.ArmorBarBackground.Visible = true
                     
-                    boxDrawings.ArmorBar.Size = Vector2.new(2, armorBarHeight)
-                    boxDrawings.ArmorBar.Position = Vector2.new(armorBarX, barY + smoothHeight - armorBarHeight)
+                    boxDrawings.ArmorBar.Size = Vector2.new(3, armorBarHeight)
+                    boxDrawings.ArmorBar.Position = Vector2.new(armorBarX - 0.5, barY + smoothHeight - armorBarHeight)
                     boxDrawings.ArmorBar.Color = self.Config.ArmorBarColor
                     boxDrawings.ArmorBar.Visible = boxDrawings.CurrentArmor > 0
                     
@@ -1311,6 +1318,9 @@ function espModule:UpdateAnimations(dt)
         if self.State.OutlineGradientEnabled and boxDrawings.OutlineGradient then
             boxDrawings.OutlineGradient.Rotation = currentRotation
         end
+        if self.State.HealthGradientEnabled and boxDrawings.HealthBarGradient then
+            boxDrawings.HealthBarGradient.Rotation = currentRotation + 90
+        end
     end
     
     for _, data in pairs(self.Caches.RingCache) do
@@ -1508,7 +1518,7 @@ function espModule:UpdateFillGradient()
             boxDrawings.Gradient.Color = ColorSequence.new({
                 ColorSequenceKeypoint.new(0, self.Config.BoxGradientColor1),
                 ColorSequenceKeypoint.new(0.5, self.Config.BoxGradientColor2),
-                ColorSequenceKeypoint.new(1, self.Config.BoxGradientColor1)
+                ColorSequenceKeypoint.new(1, self.Config.BoxGradientColor3)
             })
         end
     end

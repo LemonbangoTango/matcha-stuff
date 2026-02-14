@@ -1,11 +1,4 @@
-<function_calls>
-<invoke name="artifacts">
-<parameter name="command">create</parameter>
-<parameter name="id">matcha-esp-full</parameter>
-<parameter name="type">application/vnd.ant.code</parameter>
-<parameter name="language">lua</parameter>
-<parameter name="title">Matcha ESP Module - Complete Fixed</parameter>
-<parameter name="content">local playersService = game:GetService("Players")
+local playersService = game:GetService("Players")
 local workspaceService = game:GetService("Workspace")
 local runService = game:GetService("RunService")
 local userInputService = game:GetService("UserInputService")

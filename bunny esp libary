@@ -130,14 +130,17 @@ local function lerpColor3(a, b, t)
 end
 
 local function getHealthColor(healthPercent, config)
-    if healthPercent > 50 then
-        return config.HealthColorFull
-    elseif healthPercent > 25 then
-        local t = (healthPercent - 25) / 25
+    if healthPercent >= 50 then
+        -- Green to Yellow (50% to 100%)
+        local t = (healthPercent - 50) / 50
         return lerpColor3(config.HealthColorMid, config.HealthColorFull, t)
-    else
-        local t = healthPercent / 25
+    elseif healthPercent >= 25 then
+        -- Yellow to Red (25% to 50%)
+        local t = (healthPercent - 25) / 25
         return lerpColor3(config.HealthColorLow, config.HealthColorMid, t)
+    else
+        -- Red (0% to 25%)
+        return config.HealthColorLow
     end
 end
 
@@ -832,7 +835,7 @@ function espModule:UpdateBox(dt)
                 local barX = smoothTopLeft.X - 6
                 local barY = smoothTopLeft.Y
 
-                -- FIXED HEALTH BAR SECTION
+                -- FIXED HEALTH BAR SECTION WITH FULL GRADIENT
                 if self.State.HealthBarEnabled or self.State.HealthTextEnabled then
                     local displayHealth = math.floor(boxDrawings.CurrentHealth)
 
@@ -852,7 +855,7 @@ function espModule:UpdateBox(dt)
                         local healthRatio = boxDrawings.CurrentHealth / 100
                         local barHeight = smoothHeight * healthRatio
 
-                        -- Use gradient health bar if enabled
+                        -- Always use gradient health bar with full gradient display
                         if self.Config.HealthBarGradientEnabled and self.State.HealthGradientEnabled then
                             -- Hide drawing-based health bar elements
                             boxDrawings.HealthBar.Visible = false
@@ -1701,7 +1704,7 @@ function espModule:CreateGUI()
     outlineLabel.Parent = scrolling
     outlineLabel.BackgroundColor3 = Color3.fromRGB(80, 40, 120)
     outlineLabel.BorderSizePixel = 0
-        outlineLabel.TextColor3 = Color3.new(1, 1, 1)
+    outlineLabel.TextColor3 = Color3.new(1, 1, 1)
     outlineLabel.TextScaled = true
     outlineLabel.Font = Enum.Font.GothamBold
     outlineLabel.Text = "Outline Gradient Colors"
@@ -1777,22 +1780,22 @@ function espModule:CreateGUI()
     healthLabel.TextColor3 = Color3.new(1, 1, 1)
     healthLabel.TextScaled = true
     healthLabel.Font = Enum.Font.GothamBold
-    healthLabel.Text = "Health Bar Gradient"
+    healthLabel.Text = "Health Bar Gradient (Red→Yellow→Green)"
     healthLabel.Size = UDim2.new(1, -10, 0, 25)
 
-    createColorButton("Health Grad 1 (Low)", self.Config.HealthBarGradient1, function(btn)
+    createColorButton("Health Red (0-25%)", self.Config.HealthBarGradient1, function(btn)
         btn.BackgroundColor3 = Color3.fromRGB(math.random(100, 255), math.random(100, 255), math.random(100, 255))
         self:SetHealthGradient1(btn.BackgroundColor3)
         self:UpdateHealthGradient()
     end)
 
-    createColorButton("Health Grad 2 (Mid)", self.Config.HealthBarGradient2, function(btn)
+    createColorButton("Health Yellow (25-50%)", self.Config.HealthBarGradient2, function(btn)
         btn.BackgroundColor3 = Color3.fromRGB(math.random(100, 255), math.random(100, 255), math.random(100, 255))
         self:SetHealthGradient2(btn.BackgroundColor3)
         self:UpdateHealthGradient()
     end)
 
-    createColorButton("Health Grad 3 (Full)", self.Config.HealthBarGradient3, function(btn)
+    createColorButton("Health Green (50-100%)", self.Config.HealthBarGradient3, function(btn)
         btn.BackgroundColor3 = Color3.fromRGB(math.random(100, 255), math.random(100, 255), math.random(100, 255))
         self:SetHealthGradient3(btn.BackgroundColor3)
         self:UpdateHealthGradient()
